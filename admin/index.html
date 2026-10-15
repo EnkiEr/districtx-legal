@@ -123,6 +123,11 @@
       <div class="scroll"><table id="purchases"><thead><tr><th>Data</th><th>Produkt</th><th>Gracz</th><th>Środowisko</th><th>Wygasa</th></tr></thead><tbody></tbody></table></div>
     </section>
 
+    <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Lista oczekujących</h2><button class="ghost" style="flex:0 0 auto" id="wlExport">Eksport CSV</button></div>
+      <p class="muted">Strona zapisu: <a href="../waitlist/" style="color:var(--accent)">../waitlist/</a></p>
+    </section>
+
     <div class="row"><div style="flex:0 0 auto"><button class="ghost" id="logout">Wyloguj</button></div></div>
   </div>
 </main>
@@ -175,7 +180,7 @@ async function start() {
 async function loadStats() {
   const s = await check(sb.rpc("admin_stats"));
   const labels = { players:"Gracze", active_24h:"Aktywni 24 h", active_7d:"Aktywni 7 dni", new_24h:"Nowi 24 h", alliances:"Sojusze",
-    purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu" };
+    purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu", waitlist:"Lista oczekujących" };
   $("stats").innerHTML = Object.entries(labels).map(([k, l]) => `<div class="stat"><b>${esc(s[k] ?? 0)}</b><small>${l}</small></div>`).join("");
 }
 $("refreshStats").onclick = loadStats;
@@ -301,6 +306,12 @@ async function loadPurchases() {
     <td class="muted">${esc(p.user_id)}</td><td>${esc(p.environment)}</td><td>${when(p.expires_at)}</td></tr>`).join("")
     || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
 }
+
+$("wlExport").onclick = async () => {
+  const rows = await check(sb.from("waitlist").select("email,language,source,created_at").order("created_at"));
+  const csv = "email,language,source,created_at\n" + rows.map(r => [r.email, r.language, r.source, r.created_at].map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "waitlist.csv"; a.click();
+};
 
 sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN") start(); });
 start();
