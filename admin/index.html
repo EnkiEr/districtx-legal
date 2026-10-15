@@ -41,10 +41,12 @@
 <main>
   <section id="login">
     <h2>Logowanie</h2>
-    <p class="muted">Podaj adres e-mail konta administratora. Wyślemy link logowania (bez hasła).</p>
+    <p class="muted">Zaloguj się kontem administratora (e-mail i hasło) albo poproś o link logowania na e-mail.</p>
     <div class="row">
       <div><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="X_apps@icloud.com"></div>
-      <div style="flex:0 0 auto"><button id="sendLink">Wyślij link</button></div>
+      <div><label for="password">Hasło</label><input id="password" type="password" autocomplete="current-password"></div>
+      <div style="flex:0 0 auto"><button id="signIn">Zaloguj</button></div>
+      <div style="flex:0 0 auto"><button class="ghost" id="sendLink">Wyślij link</button></div>
     </div>
     <p id="loginMsg" class="muted"></p>
   </section>
@@ -146,10 +148,17 @@ $("sendLink").onclick = async () => {
   const email = $("email").value.trim();
   if (!email) return;
   $("sendLink").disabled = true;
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: false } });
   $("sendLink").disabled = false;
   $("loginMsg").textContent = error ? ("Błąd: " + error.message) : "Link wysłany. Otwórz e-mail na tym urządzeniu i kliknij link.";
 };
+$("signIn").onclick = async () => {
+  $("signIn").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
+  $("signIn").disabled = false;
+  if (error) { $("loginMsg").textContent = "Błąd: " + error.message; } else { start(); }
+};
+$("password").onkeydown = (e) => { if (e.key === "Enter") $("signIn").click(); };
 $("logout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
 async function start() {
