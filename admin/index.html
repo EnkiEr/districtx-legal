@@ -153,7 +153,7 @@ $("sendLink").onclick = async () => {
   const email = $("email").value.trim();
   if (!email) return;
   $("sendLink").disabled = true;
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: false } });
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
   $("sendLink").disabled = false;
   $("loginMsg").textContent = error ? ("Błąd: " + error.message) : "Link wysłany. Otwórz e-mail na tym urządzeniu i kliknij link.";
 };
