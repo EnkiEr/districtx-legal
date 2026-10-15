@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>DistrictX Admin</title>
+<style>
+  :root { --bg:#0b0f14; --panel:#121a23; --fg:#e8eef5; --muted:#8fa2b6; --accent:#3fd0ff; --amber:#ffb547; --danger:#ff5d6c; --ok:#4ade80; --line:#1f2a36; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
+  header h1 { font-size:18px; margin:0; } header h1 span { color:var(--accent); }
+  main { max-width:1100px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  h2 { font-size:16px; margin:0 0 12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:10px; }
+  .stat { background:#0e151d; border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .stat b { display:block; font-size:22px; } .stat small { color:var(--muted); }
+  label { display:block; color:var(--muted); font-size:13px; margin:8px 0 4px; }
+  input, select, textarea { width:100%; background:#0e151d; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; }
+  textarea { min-height:90px; font-family: ui-monospace, Menlo, monospace; font-size:13px; }
+  button { background:var(--accent); color:#001018; border:0; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; font:inherit; font-weight:600; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button.warn { background:var(--danger); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:end; } .row > * { flex:1 1 160px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .scroll { overflow-x:auto; }
+  .muted { color:var(--muted); } .ok { color:var(--ok); } .err { color:var(--danger); }
+  #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#1b2733; border:1px solid var(--line); padding:10px 16px; border-radius:10px; display:none; z-index:5; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:99px; background:#1b2733; font-size:12px; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>District<span>X</span> · Panel administratora</h1>
+  <div id="who" class="muted"></div>
+</header>
+<main>
+  <section id="login">
+    <h2>Logowanie</h2>
+    <p class="muted">Podaj adres e-mail konta administratora. Wyślemy link logowania (bez hasła).</p>
+    <div class="row">
+      <div><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="X_apps@icloud.com"></div>
+      <div style="flex:0 0 auto"><button id="sendLink">Wyślij link</button></div>
+    </div>
+    <p id="loginMsg" class="muted"></p>
+  </section>
+
+  <section id="noadmin" class="hidden">
+    <h2>Brak uprawnień</h2>
+    <p class="muted">To konto nie ma roli administratora. ID konta: <code id="myId"></code></p>
+  </section>
+
+  <div id="app" class="hidden" style="display:grid; gap:16px">
+    <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Statystyki</h2><button class="ghost" style="flex:0 0 auto" id="refreshStats">Odśwież</button></div>
+      <div class="grid" id="stats" style="margin-top:12px"></div>
+    </section>
+
+    <section>
+      <h2>Ekonomia i limity</h2>
+      <div class="row">
+        <div><label for="crystalLimit">Dzienny limit wydawania kryształów (na gracza)</label><input id="crystalLimit" type="number" min="0" step="100"></div>
+        <div><label for="allianceMax">Maks. liczba członków sojuszu</label><input id="allianceMax" type="number" min="1" max="500"></div>
+        <div><label for="researchDaily">Dzienny limit punktów badań sojuszu (na gracza)</label><input id="researchDaily" type="number" min="0" step="1000"></div>
+        <div style="flex:0 0 auto"><button id="saveEconomy">Zapisz</button></div>
+      </div>
+      <p class="muted">Zmiany docierają do graczy przy najbliższej synchronizacji (zwykle w ciągu minuty).</p>
+    </section>
+
+    <section>
+      <h2>Konfiguracja na żywo (wszystkie klucze)</h2>
+      <div class="row">
+        <div><label for="cfgKey">Klucz</label><select id="cfgKey"></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="cfgNew">Nowy klucz</button></div>
+      </div>
+      <label for="cfgValue">Wartość (JSON)</label>
+      <textarea id="cfgValue"></textarea>
+      <div class="row" style="margin-top:8px"><div style="flex:0 0 auto"><button id="cfgSave">Zapisz klucz</button></div></div>
+    </section>
+
+    <section>
+      <h2>Gracze</h2>
+      <div class="row">
+        <div><label for="playerQuery">Nazwa lub ID</label><input id="playerQuery" placeholder="np. Boss"></div>
+        <div style="flex:0 0 auto"><button id="playerSearch">Szukaj</button></div>
+      </div>
+      <div class="scroll"><table id="players"><thead><tr><th>Gracz</th><th>Siła</th><th>HQ</th><th>Ostatnio</th><th>Status</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Opinie i błędy</h2>
+      <div class="row">
+        <div><label for="fbFilter">Status</label>
+          <select id="fbFilter"><option value="new">nowe</option><option value="seen">przejrzane</option><option value="planned">zaplanowane</option><option value="fixed">naprawione</option><option value="closed">zamknięte</option><option value="">wszystkie</option></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="fbReload">Odśwież</button></div>
+      </div>
+      <div class="scroll"><table id="feedback"><thead><tr><th>Data</th><th>Typ</th><th>Treść</th><th>Wersja / urządzenie</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Ogłoszenia w grze</h2>
+      <div class="row">
+        <div><label for="annTitlePl">Tytuł (PL)</label><input id="annTitlePl"></div>
+        <div><label for="annTitleEn">Tytuł (EN)</label><input id="annTitleEn"></div>
+        <div><label for="annDays">Ile dni</label><input id="annDays" type="number" value="3" min="1"></div>
+      </div>
+      <div class="row">
+        <div><label for="annBodyPl">Treść (PL)</label><textarea id="annBodyPl" style="font-family:inherit"></textarea></div>
+        <div><label for="annBodyEn">Treść (EN)</label><textarea id="annBodyEn" style="font-family:inherit"></textarea></div>
+      </div>
+      <div class="row" style="margin-top:8px"><div style="flex:0 0 auto"><button id="annSave">Opublikuj ogłoszenie</button></div></div>
+      <div class="scroll"><table id="announcements"><thead><tr><th>Tytuł</th><th>Od</th><th>Do</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Ostatnie zakupy</h2>
+      <div class="scroll"><table id="purchases"><thead><tr><th>Data</th><th>Produkt</th><th>Gracz</th><th>Środowisko</th><th>Wygasa</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <div class="row"><div style="flex:0 0 auto"><button class="ghost" id="logout">Wyloguj</button></div></div>
+  </div>
+</main>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://psawewkmzwnzxbaygxrq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_5QGx9Jwr_noPTJIcU-_A5A_vpwgppsz";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, detectSessionInUrl: true, flowType: "pkce" } });
+const $ = (id) => document.getElementById(id);
+let configRows = [];
+
+function toast(text, bad) {
+  const t = $("toast"); t.textContent = text; t.className = bad ? "err" : "ok"; t.style.display = "block";
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => t.style.display = "none", 3500);
+}
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function when(d) { return d ? new Date(d).toLocaleString("pl-PL", { dateStyle:"short", timeStyle:"short" }) : "—"; }
+async function check(promise) { const { data, error } = await promise; if (error) { toast(error.message, true); throw error; } return data; }
+
+$("sendLink").onclick = async () => {
+  const email = $("email").value.trim();
+  if (!email) return;
+  $("sendLink").disabled = true;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
+  $("sendLink").disabled = false;
+  $("loginMsg").textContent = error ? ("Błąd: " + error.message) : "Link wysłany. Otwórz e-mail na tym urządzeniu i kliknij link.";
+};
+$("logout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+async function start() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $("login").classList.remove("hidden"); return; }
+  $("login").classList.add("hidden");
+  $("who").textContent = session.user.email || session.user.id;
+  const { data: isAdmin } = await sb.rpc("is_admin");
+  if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
+  $("app").classList.remove("hidden");
+  loadStats(); loadConfig(); searchPlayers(); loadFeedback(); loadAnnouncements(); loadPurchases();
+}
+
+async function loadStats() {
+  const s = await check(sb.rpc("admin_stats"));
+  const labels = { players:"Gracze", active_24h:"Aktywni 24 h", active_7d:"Aktywni 7 dni", new_24h:"Nowi 24 h", alliances:"Sojusze",
+    purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu" };
+  $("stats").innerHTML = Object.entries(labels).map(([k, l]) => `<div class="stat"><b>${esc(s[k] ?? 0)}</b><small>${l}</small></div>`).join("");
+}
+$("refreshStats").onclick = loadStats;
+
+async function loadConfig() {
+  configRows = await check(sb.from("live_config").select("key,value,updated_at").order("key"));
+  const get = (k) => (configRows.find(r => r.key === k) || {}).value || {};
+  $("crystalLimit").value = get("economy").crystal_daily_limit ?? 20000;
+  $("allianceMax").value = get("alliance").max_members ?? 99;
+  $("researchDaily").value = get("alliance").research_daily_points ?? 100000;
+  const current = $("cfgKey").value;
+  $("cfgKey").innerHTML = configRows.map(r => `<option>${esc(r.key)}</option>`).join("");
+  if (current && configRows.some(r => r.key === current)) $("cfgKey").value = current;
+  showConfig();
+}
+function showConfig() {
+  const row = configRows.find(r => r.key === $("cfgKey").value);
+  $("cfgValue").value = row ? JSON.stringify(row.value, null, 2) : "{}";
+}
+$("cfgKey").onchange = showConfig;
+$("cfgNew").onclick = () => {
+  const key = prompt("Nazwa nowego klucza (np. pvp)");
+  if (!key) return;
+  configRows.push({ key, value: {} });
+  $("cfgKey").insertAdjacentHTML("beforeend", `<option>${esc(key)}</option>`);
+  $("cfgKey").value = key; showConfig();
+};
+$("cfgSave").onclick = async () => {
+  let value; try { value = JSON.parse($("cfgValue").value); } catch (e) { return toast("Niepoprawny JSON", true); }
+  await check(sb.rpc("admin_set_config", { p_key: $("cfgKey").value, p_value: value }));
+  toast("Zapisano"); loadConfig();
+};
+$("saveEconomy").onclick = async () => {
+  const get = (k) => ({ ...((configRows.find(r => r.key === k) || {}).value || {}) });
+  const economy = get("economy"); economy.crystal_daily_limit = Math.max(0, parseInt($("crystalLimit").value || "0", 10));
+  const alliance = get("alliance");
+  alliance.max_members = Math.max(1, parseInt($("allianceMax").value || "99", 10));
+  alliance.research_daily_points = Math.max(0, parseInt($("researchDaily").value || "0", 10));
+  await check(sb.rpc("admin_set_config", { p_key: "economy", p_value: economy }));
+  await check(sb.rpc("admin_set_config", { p_key: "alliance", p_value: alliance }));
+  toast("Limity zapisane"); loadConfig();
+};
+
+async function searchPlayers() {
+  const rows = await check(sb.rpc("admin_find_players", { p_query: $("playerQuery").value.trim() }));
+  $("players").querySelector("tbody").innerHTML = rows.map(p => `<tr>
+    <td><b>${esc(p.display_name)}</b><br><small class="muted">${esc(p.id)}</small></td>
+    <td>${esc(p.power)}</td><td>${esc(p.hq_level)}</td><td>${when(p.last_seen_at)}</td>
+    <td>${p.is_banned ? '<span class="pill err">ban</span>' : ''} ${p.muted_until && new Date(p.muted_until) > new Date() ? '<span class="pill">wyciszony</span>' : ''}</td>
+    <td class="row" style="gap:6px">
+      <button class="ghost" data-act="gift" data-id="${esc(p.id)}">Prezent</button>
+      <button class="ghost" data-act="mute" data-id="${esc(p.id)}">Wycisz 24 h</button>
+      <button class="ghost" data-act="unmute" data-id="${esc(p.id)}">Odcisz</button>
+      <button class="${p.is_banned ? 'ghost' : 'warn'}" data-act="${p.is_banned ? 'unban' : 'ban'}" data-id="${esc(p.id)}">${p.is_banned ? 'Odbanuj' : 'Banuj'}</button>
+    </td></tr>`).join("") || `<tr><td colspan="6" class="muted">Brak wyników</td></tr>`;
+}
+$("playerSearch").onclick = searchPlayers;
+$("playerQuery").onkeydown = (e) => { if (e.key === "Enter") searchPlayers(); };
+$("players").onclick = async (e) => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const id = b.dataset.id, act = b.dataset.act;
+  if (act === "gift") {
+    const text = prompt('Zasoby jako JSON, np. {"crystals": 500, "steel": 10000}', '{"crystals": 500}');
+    if (!text) return;
+    let res; try { res = JSON.parse(text); } catch (err) { return toast("Niepoprawny JSON", true); }
+    const note = prompt("Notatka (opcjonalnie)", "Prezent od zespołu DistrictX") || "";
+    await check(sb.rpc("admin_gift", { p_user: id, p_resources: res, p_note: note }));
+    toast("Prezent wysłany");
+  } else if (act === "mute" || act === "unmute") {
+    await check(sb.rpc("admin_moderate", { p_user: id, p_mute_hours: act === "mute" ? 24 : 0, p_ban: null }));
+    toast("Zapisano"); searchPlayers();
+  } else if (act === "ban" || act === "unban") {
+    if (act === "ban" && !confirm("Zbanować gracza?")) return;
+    await check(sb.rpc("admin_moderate", { p_user: id, p_mute_hours: 0, p_ban: act === "ban" }));
+    toast("Zapisano"); searchPlayers();
+  }
+};
+
+async function loadFeedback() {
+  let q = sb.from("feedback").select("id,kind,body,app_version,device,language,status,created_at").order("created_at", { ascending: false }).limit(100);
+  if ($("fbFilter").value) q = q.eq("status", $("fbFilter").value);
+  const rows = await check(q);
+  const statuses = ["new","seen","planned","fixed","closed"];
+  $("feedback").querySelector("tbody").innerHTML = rows.map(f => `<tr>
+    <td>${when(f.created_at)}</td><td><span class="pill">${esc(f.kind)}</span></td>
+    <td style="max-width:420px; white-space:pre-wrap">${esc(f.body)}</td>
+    <td class="muted">${esc(f.app_version)}<br>${esc(f.device)} · ${esc(f.language)}</td>
+    <td><select data-fb="${f.id}">${statuses.map(s => `<option ${s === f.status ? "selected" : ""}>${s}</option>`).join("")}</select></td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
+}
+$("fbFilter").onchange = loadFeedback; $("fbReload").onclick = loadFeedback;
+$("feedback").onchange = async (e) => {
+  const s = e.target.closest("select[data-fb]"); if (!s) return;
+  await check(sb.from("feedback").update({ status: s.value }).eq("id", s.dataset.fb));
+  toast("Status zmieniony"); loadStats();
+};
+
+async function loadAnnouncements() {
+  const rows = await check(sb.from("announcements").select("*").order("created_at", { ascending: false }).limit(20));
+  $("announcements").querySelector("tbody").innerHTML = rows.map(a => `<tr>
+    <td>${esc((a.title || {}).pl || (a.title || {}).en)}</td><td>${when(a.starts_at)}</td><td>${when(a.ends_at)}</td>
+    <td><button class="ghost" data-ann="${a.id}">Zakończ</button></td></tr>`).join("") || `<tr><td colspan="4" class="muted">Brak</td></tr>`;
+}
+$("annSave").onclick = async () => {
+  const pl = $("annTitlePl").value.trim(); if (!pl) return toast("Podaj tytuł", true);
+  const en = $("annTitleEn").value.trim() || pl;
+  const days = Math.max(1, parseInt($("annDays").value || "3", 10));
+  await check(sb.from("announcements").insert({
+    title: { pl, en }, body: { pl: $("annBodyPl").value.trim(), en: $("annBodyEn").value.trim() || $("annBodyPl").value.trim() },
+    ends_at: new Date(Date.now() + days * 86400000).toISOString()
+  }));
+  toast("Ogłoszenie opublikowane"); loadAnnouncements();
+};
+$("announcements").onclick = async (e) => {
+  const b = e.target.closest("button[data-ann]"); if (!b) return;
+  await check(sb.from("announcements").update({ ends_at: new Date().toISOString() }).eq("id", b.dataset.ann));
+  loadAnnouncements();
+};
+
+async function loadPurchases() {
+  const rows = await check(sb.from("purchases").select("created_at,product_id,user_id,environment,expires_at").order("created_at", { ascending: false }).limit(50));
+  $("purchases").querySelector("tbody").innerHTML = rows.map(p => `<tr><td>${when(p.created_at)}</td><td>${esc(p.product_id)}</td>
+    <td class="muted">${esc(p.user_id)}</td><td>${esc(p.environment)}</td><td>${when(p.expires_at)}</td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
+}
+
+sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN") start(); });
+start();
+</script>
+</body>
+</html>
