@@ -328,7 +328,11 @@ async function start() {
 
 // ---------- 2FA ----------
 let mfaFactorId = null;
-async function showMfa() {
+let mfaSetup = null;
+// start() can run twice on load (page start + auth event): enrol only once,
+// otherwise the QR on screen belongs to a factor that was already replaced.
+function showMfa() { if (!mfaSetup) mfaSetup = setupMfa().catch((e) => { mfaSetup = null; throw e; }); return mfaSetup; }
+async function setupMfa() {
   $("mfa").classList.remove("hidden");
   const { data } = await sb.auth.mfa.listFactors();
   const verified = (data?.totp || []).find(f => f.status === "verified");
@@ -345,8 +349,8 @@ $("mfaVerify").onclick = async () => {
   $("mfaVerify").disabled = true;
   const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: mfaFactorId, code });
   $("mfaVerify").disabled = false;
-  if (error) return toast("Zły kod: " + error.message, true);
-  $("mfaCode").value = ""; toast("Zweryfikowano"); start();
+  if (error) return toast("Zły kod – sprawdź, czy w aplikacji używasz wpisu z tego kodu QR (stare wpisy „DistrictX admin” usuń). " + error.message, true);
+  $("mfaCode").value = ""; $("mfaEnroll").classList.add("hidden"); toast("Zweryfikowano"); start();
 };
 $("mfaCode").onkeydown = (e) => { if (e.key === "Enter") $("mfaVerify").click(); };
 
