@@ -64,6 +64,19 @@
     <p class="muted">To konto nie ma roli administratora. ID konta: <code id="myId"></code></p>
   </section>
 
+  <section id="mfa" class="hidden">
+    <h2>Weryfikacja dwuetapowa (2FA)</h2>
+    <p class="muted" id="mfaInfo">Panel wymaga kodu z aplikacji uwierzytelniającej (Google Authenticator, 1Password, Hasła w iOS).</p>
+    <div id="mfaEnroll" class="hidden">
+      <p>Zeskanuj kod QR w aplikacji uwierzytelniającej albo wpisz klucz ręcznie:</p>
+      <div class="row" style="align-items:center"><div style="flex:0 0 auto"><img id="mfaQr" alt="QR" style="width:180px;height:180px;background:#fff;border-radius:8px"></div><div><code id="mfaSecret" style="word-break:break-all"></code></div></div>
+    </div>
+    <div class="row">
+      <div><label for="mfaCode">Kod 6-cyfrowy</label><input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+      <div style="flex:0 0 auto"><button id="mfaVerify">Potwierdź</button></div>
+    </div>
+  </section>
+
   <div id="app" class="hidden" style="display:grid; gap:16px">
     <section>
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Statystyki</h2><button class="ghost" style="flex:0 0 auto" id="refreshStats">Odśwież</button></div>
@@ -105,6 +118,63 @@
         <div style="flex:0 0 auto"><button id="evCreate">Wypuść bossa</button></div>
       </div>
       <div class="scroll" style="margin-top:12px"><table id="events"><thead><tr><th>Boss</th><th>HP</th><th>Gracze</th><th>Koniec</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Kalendarz wydarzeń i boosty</h2><button class="ghost" style="flex:0 0 auto" id="calReload">Odśwież</button></div>
+      <div class="row">
+        <div><label for="bKind">Boost</label><select id="bKind"><option value="production">Produkcja</option><option value="build_speed">Szybkość budowy</option><option value="research_speed">Szybkość badań</option><option value="mob_loot">Łup z gangów</option><option value="troop_speed">Szybkość szkolenia</option></select></div>
+        <div><label for="bPercent">Procent</label><input id="bPercent" type="number" min="1" max="500" value="50"></div>
+        <div><label for="bStart">Start (puste = teraz)</label><input id="bStart" type="datetime-local"></div>
+        <div><label for="bHours">Ile godzin</label><input id="bHours" type="number" min="1" value="24"></div>
+      </div>
+      <div class="row">
+        <div><label for="bTitlePl">Nazwa (PL)</label><input id="bTitlePl" placeholder="Weekend produkcji"></div>
+        <div><label for="bTitleEn">Nazwa (EN)</label><input id="bTitleEn" placeholder="Production weekend"></div>
+        <div style="flex:0 0 auto"><button id="bCreate">Zaplanuj boost</button></div>
+      </div>
+      <div class="scroll" style="margin-top:12px"><table id="calendar"><thead><tr><th>Typ</th><th>Co</th><th>Od</th><th>Do</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section>
+      <h2>Promocja w sklepie</h2>
+      <p class="muted">Dodatkowe kryształy do każdego pakietu kryształów, dopóki trwa promocja (baner w sklepie gry).</p>
+      <div class="row">
+        <div><label for="promoPercent">Bonus %</label><input id="promoPercent" type="number" min="0" max="300" value="20"></div>
+        <div><label for="promoHours">Ile godzin</label><input id="promoHours" type="number" min="1" value="48"></div>
+        <div><label for="promoTitlePl">Tytuł (PL)</label><input id="promoTitlePl" placeholder="Promocja weekendowa"></div>
+        <div><label for="promoTitleEn">Tytuł (EN)</label><input id="promoTitleEn" placeholder="Weekend sale"></div>
+      </div>
+      <div class="row"><div style="flex:0 0 auto"><button id="promoSave">Uruchom promocję</button></div><div style="flex:0 0 auto"><button class="ghost" id="promoEnd">Zakończ</button></div><div class="muted" id="promoNow"></div></div>
+    </section>
+    <section>
+      <h2>Kampanie push</h2>
+      <p class="muted">Powiadomienie trafia do każdego gracza w jego języku gry (brakujący język → angielski). Wysyłka: najbliższe uruchomienie funkcji broadcast-push.</p>
+      <div class="row">
+        <div><label for="pushLang">Język</label><select id="pushLang"><option>pl</option><option>en</option><option>zh-Hans</option><option>zh-Hant</option><option>ko</option><option>ar</option><option>he</option></select></div>
+        <div><label for="pushTitle">Tytuł</label><input id="pushTitle" maxlength="80"></div>
+        <div><label for="pushBody">Treść</label><input id="pushBody" maxlength="200"></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="pushAddLang">Dodaj język</button></div>
+      </div>
+      <div class="muted" id="pushLangs" style="margin:6px 0">Języki: —</div>
+      <div class="row">
+        <div><label for="pushAt">Wyślij o (puste = teraz)</label><input id="pushAt" type="datetime-local"></div>
+        <div style="flex:0 0 auto"><button id="pushCreate">Zaplanuj kampanię</button></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="pushRun">Wyślij zaległe teraz</button></div>
+      </div>
+    </section>
+    <section>
+      <h2>Prezent dla sojuszu lub regionu</h2>
+      <div class="row" id="giftGroupRes"></div>
+      <div class="row">
+        <div><label for="ggAlliance">Tag sojuszu</label><input id="ggAlliance" placeholder="np. NEO"></div>
+        <div><label for="ggRegion">albo numer regionu</label><input id="ggRegion" type="number" min="1"></div>
+        <div><label for="ggNote">Notatka</label><input id="ggNote" value="Prezent od zespołu DistrictX"></div>
+        <div style="flex:0 0 auto"><button id="ggSend">Wyślij</button></div>
+      </div>
+    </section>
+    <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Sporne wyniki PvP</h2><button class="ghost" style="flex:0 0 auto" id="dispReload">Odśwież</button></div>
+      <p class="muted">Bitwy, których wynik nie zgadzał się z powtórką u drugiej strony. Łup został zwrócony obrońcy automatycznie.</p>
+      <div class="scroll"><table id="disputes"><thead><tr><th>Data</th><th>Atakujący</th><th>Obrońca</th><th>Łup</th><th>Flagi atakującego</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section>
       <h2>Prezent dla wszystkich</h2>
@@ -157,7 +227,7 @@
     <section>
       <h2>Czat i moderacja</h2>
       <div class="row">
-        <div><label for="chatChannel">Kanał</label><select id="chatChannel"><option value="reported">Zgłoszone wiadomości</option><option value="world">Czat świata</option></select></div>
+        <div><label for="chatChannel">Kanał</label><select id="chatChannel"><option value="reported">Zgłoszone wiadomości</option><option value="world">Czat globalny</option><option value="world:pl">Świat · pl</option><option value="world:en">Świat · en</option><option value="world:zh-Hans">Świat · zh-Hans</option><option value="world:zh-Hant">Świat · zh-Hant</option><option value="world:ko">Świat · ko</option><option value="world:ar">Świat · ar</option><option value="world:he">Świat · he</option></select></div>
         <div style="flex:0 0 auto"><button class="ghost" id="chatReload">Odśwież</button></div>
       </div>
       <div class="row">
@@ -245,16 +315,141 @@ async function start() {
   if (!session) { $("login").classList.remove("hidden"); return; }
   $("login").classList.add("hidden");
   $("who").textContent = session.user.email || session.user.id;
+  const { data: status, error: statusError } = await sb.rpc("admin_status");
+  if (!statusError && status && status.admin_account && status.aal !== "aal2") { return showMfa(); }
+  $("mfa").classList.add("hidden");
   const { data: isAdmin } = await sb.rpc("is_admin");
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {});
+  clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
+
+// ---------- 2FA ----------
+let mfaFactorId = null;
+async function showMfa() {
+  $("mfa").classList.remove("hidden");
+  const { data } = await sb.auth.mfa.listFactors();
+  const verified = (data?.totp || []).find(f => f.status === "verified");
+  if (verified) { mfaFactorId = verified.id; $("mfaEnroll").classList.add("hidden"); $("mfaCode").focus(); return; }
+  // Drop half-finished enrolments, then start a new one.
+  for (const f of (data?.all || []).filter(f => f.factor_type === "totp" && f.status !== "verified")) await sb.auth.mfa.unenroll({ factorId: f.id });
+  const enrolled = await check(sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "DistrictX admin" }));
+  mfaFactorId = enrolled.id;
+  $("mfaQr").src = enrolled.totp.qr_code; $("mfaSecret").textContent = enrolled.totp.secret;
+  $("mfaEnroll").classList.remove("hidden");
+}
+$("mfaVerify").onclick = async () => {
+  const code = $("mfaCode").value.trim(); if (!/^\d{6}$/.test(code) || !mfaFactorId) return toast("Wpisz 6 cyfr", true);
+  $("mfaVerify").disabled = true;
+  const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: mfaFactorId, code });
+  $("mfaVerify").disabled = false;
+  if (error) return toast("Zły kod: " + error.message, true);
+  $("mfaCode").value = ""; toast("Zweryfikowano"); start();
+};
+$("mfaCode").onkeydown = (e) => { if (e.key === "Enter") $("mfaVerify").click(); };
+
+// ---------- Calendar & boosts ----------
+const boostNames = { production:"Produkcja", build_speed:"Szybkość budowy", research_speed:"Szybkość badań", mob_loot:"Łup z gangów", troop_speed:"Szybkość szkolenia" };
+function statusOf(start, end) { const n = Date.now(); return n < new Date(start) ? "zaplanowane" : n < new Date(end) ? "TRWA" : "zakończone"; }
+async function loadCalendar() {
+  const c = await check(sb.rpc("admin_calendar"));
+  const rows = [];
+  for (const b of c.boosts || []) rows.push({ at: b.starts_at, html: `<tr><td><span class="pill">boost</span></td><td>${esc(boostNames[b.kind] || b.kind)} +${b.percent}% · ${esc((b.title || {}).pl || "")}</td><td>${when(b.starts_at)}</td><td>${when(b.ends_at)}</td><td>${statusOf(b.starts_at, b.ends_at)}</td><td><button class="ghost" data-boost="${b.id}">Usuń</button></td></tr>` });
+  for (const e of c.bosses || []) rows.push({ at: e.starts_at, html: `<tr><td><span class="pill">boss</span></td><td>${esc((e.title || {}).pl || (e.title || {}).en || "")}</td><td>${when(e.starts_at)}</td><td>${when(e.ends_at)}</td><td>${esc(e.status)}</td><td></td></tr>` });
+  for (const p of c.pushes || []) rows.push({ at: p.send_at, html: `<tr><td><span class="pill">push</span></td><td>${esc((p.title || {}).pl || (p.title || {}).en || "")}</td><td>${when(p.send_at)}</td><td>—</td><td>${esc(p.status)}${p.sent_count != null ? " · " + p.sent_count : ""}</td><td>${p.status === "pending" ? `<button class="ghost" data-push="${p.id}">Anuluj</button>` : ""}</td></tr>` });
+  rows.sort((a, b) => new Date(b.at) - new Date(a.at));
+  // Scheduled campaigns go out whenever the panel is open and they are due.
+  if ((c.pushes || []).some(p => p.status === "pending" && new Date(p.send_at) <= new Date()) && !loadCalendar.sending) {
+    loadCalendar.sending = true; runPush().finally(() => { loadCalendar.sending = false; });
+  }
+  $("calendar").querySelector("tbody").innerHTML = rows.map(r => r.html).join("") || `<tr><td colspan="6" class="muted">Pusto</td></tr>`;
+}
+$("calReload").onclick = loadCalendar;
+$("bCreate").onclick = async () => {
+  const start = $("bStart").value ? new Date($("bStart").value) : new Date();
+  const end = new Date(start.getTime() + Math.max(1, parseInt($("bHours").value || "24", 10)) * 3600e3);
+  const title = {}; if ($("bTitlePl").value.trim()) title.pl = $("bTitlePl").value.trim(); if ($("bTitleEn").value.trim()) title.en = $("bTitleEn").value.trim();
+  await check(sb.from("global_boosts").insert({ kind: $("bKind").value, percent: parseInt($("bPercent").value || "0", 10), title, starts_at: start.toISOString(), ends_at: end.toISOString() }));
+  toast("Boost zaplanowany"); loadCalendar();
+};
+$("calendar").onclick = async (e) => {
+  const b = e.target.closest("button[data-boost]"); const p = e.target.closest("button[data-push]");
+  if (b && confirm("Usunąć boost?")) { await check(sb.from("global_boosts").delete().eq("id", b.dataset.boost)); toast("Usunięto"); loadCalendar(); }
+  if (p) { await check(sb.from("push_campaigns").update({ status: "cancelled" }).eq("id", p.dataset.push)); toast("Anulowano"); loadCalendar(); }
+};
+
+// ---------- Shop promo ----------
+async function loadPromo() {
+  const rows = await check(sb.from("live_config").select("value").eq("key", "shop_promo"));
+  const v = rows[0]?.value || {};
+  const active = (v.bonus_percent || 0) > 0 && (!v.ends_at || new Date(v.ends_at) > new Date());
+  $("promoNow").textContent = active ? `Trwa: +${v.bonus_percent}% do ${when(v.ends_at)}` : "Brak aktywnej promocji";
+}
+$("promoSave").onclick = async () => {
+  const ends = new Date(Date.now() + Math.max(1, parseInt($("promoHours").value || "48", 10)) * 3600e3).toISOString();
+  const title = {}; if ($("promoTitlePl").value.trim()) title.pl = $("promoTitlePl").value.trim(); if ($("promoTitleEn").value.trim()) title.en = $("promoTitleEn").value.trim();
+  await check(sb.rpc("admin_set_config", { p_key: "shop_promo", p_value: { bonus_percent: parseInt($("promoPercent").value || "0", 10), ends_at: ends, title } }));
+  toast("Promocja uruchomiona"); loadPromo(); loadConfig();
+};
+$("promoEnd").onclick = async () => { await check(sb.rpc("admin_set_config", { p_key: "shop_promo", p_value: { bonus_percent: 0 } })); toast("Promocja zakończona"); loadPromo(); loadConfig(); };
+
+// ---------- Push campaigns ----------
+const pushDraft = { title: {}, body: {} };
+function showPushLangs() { const l = Object.keys(pushDraft.title); $("pushLangs").textContent = "Języki: " + (l.length ? l.join(", ") : "—"); }
+$("pushAddLang").onclick = () => {
+  const lang = $("pushLang").value, t = $("pushTitle").value.trim(), b = $("pushBody").value.trim();
+  if (!t || !b) return toast("Wpisz tytuł i treść", true);
+  pushDraft.title[lang] = t; pushDraft.body[lang] = b; $("pushTitle").value = ""; $("pushBody").value = ""; showPushLangs();
+};
+$("pushCreate").onclick = async () => {
+  if ($("pushTitle").value.trim() && $("pushBody").value.trim()) $("pushAddLang").click();
+  if (!Object.keys(pushDraft.title).length) return toast("Dodaj przynajmniej jeden język", true);
+  if (!pushDraft.title.en) { const f = Object.keys(pushDraft.title)[0]; if (!confirm(`Brak wersji EN – gracze w innych językach dostaną wersję ${f}. Kontynuować?`)) return; }
+  const at = $("pushAt").value ? new Date($("pushAt").value) : new Date();
+  await check(sb.from("push_campaigns").insert({ title: pushDraft.title, body: pushDraft.body, send_at: at.toISOString() }));
+  pushDraft.title = {}; pushDraft.body = {}; showPushLangs();
+  toast("Kampania zaplanowana");
+  if (at <= new Date()) await runPush();
+  loadCalendar();
+};
+async function runPush() {
+  const { data, error } = await sb.functions.invoke("broadcast-push", { body: {} });
+  if (error) return toast("Funkcja broadcast-push: " + error.message, true);
+  toast(`Wysłano: ${data?.sent ?? 0} powiadomień`);
+}
+$("pushRun").onclick = async () => { await runPush(); loadCalendar(); };
+
+// ---------- Group gifts ----------
+$("ggSend").onclick = async () => {
+  const res = readRes("giftGroupRes"); if (!Object.keys(res).length) return toast("Wpisz zasoby", true);
+  let alliance = null, region = null;
+  const tag = $("ggAlliance").value.trim();
+  if (tag) {
+    const rows = await check(sb.from("alliances").select("id,name,tag").ilike("tag", tag).limit(1));
+    if (!rows.length) return toast("Nie ma sojuszu o tym tagu", true);
+    alliance = rows[0].id;
+  } else if ($("ggRegion").value) { region = parseInt($("ggRegion").value, 10); }
+  else return toast("Podaj tag sojuszu albo region", true);
+  if (!confirm("Wysłać prezent?")) return;
+  const n = await check(sb.rpc("admin_gift_group", { p_alliance: alliance, p_region: region, p_resources: res, p_note: $("ggNote").value }));
+  toast(`Prezent wysłany do ${n} graczy`);
+};
+
+// ---------- Disputes ----------
+async function loadDisputes() {
+  const rows = await check(sb.rpc("admin_disputes"));
+  $("disputes").querySelector("tbody").innerHTML = rows.map(d => `<tr><td>${when(d.resolved_at)}</td><td>${esc(d.attacker)}</td><td>${esc(d.defender)}</td><td class="muted">${esc(JSON.stringify(d.loot || {}))}</td><td>${d.attacker_flags}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Brak sporów</td></tr>`;
+}
+$("dispReload").onclick = loadDisputes;
 
 async function loadStats() {
   const s = await check(sb.rpc("admin_stats"));
   const labels = { players:"Gracze", active_24h:"Aktywni 24 h", active_7d:"Aktywni 7 dni", new_24h:"Nowi 24 h", alliances:"Sojusze",
-    purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu", waitlist:"Lista oczekujących", events_live:"Bossowie na żywo", attacks_24h:"Ataki PvP 24 h" };
+    purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu", waitlist:"Lista oczekujących", events_live:"Bossowie na żywo", attacks_24h:"Ataki PvP 24 h",
+    retention_d1:"Retencja D1 %", retention_d7:"Retencja D7 %", retention_d30:"Retencja D30 %", revenue_usd:"Przychód brutto $", revenue_7d_usd:"Przychód 7 dni $",
+    paying_percent:"Płacący %", vip_players:"Gracze VIP", referrals:"Polecenia", disputes:"Spory PvP", push_devices:"Urządzenia push" };
   $("stats").innerHTML = Object.entries(labels).map(([k, l]) => `<div class="stat"><b>${esc(s[k] ?? 0)}</b><small>${l}</small></div>`).join("");
 }
 $("refreshStats").onclick = loadStats;
@@ -336,7 +531,7 @@ $("players").onclick = async (e) => {
 };
 
 async function loadFeedback() {
-  let q = sb.from("feedback").select("id,kind,body,app_version,device,language,status,created_at").order("created_at", { ascending: false }).limit(100);
+  let q = sb.from("feedback").select("id,kind,body,app_version,device,language,status,created_at,admin_note,is_public").order("created_at", { ascending: false }).limit(100);
   if ($("fbFilter").value) q = q.eq("status", $("fbFilter").value);
   const rows = await check(q);
   const statuses = ["new","seen","planned","fixed","closed"];
@@ -344,11 +539,23 @@ async function loadFeedback() {
     <td>${when(f.created_at)}</td><td><span class="pill">${esc(f.kind)}</span></td>
     <td style="max-width:420px; white-space:pre-wrap">${esc(f.body)}</td>
     <td class="muted">${esc(f.app_version)}<br>${esc(f.device)} · ${esc(f.language)}</td>
-    <td><select data-fb="${f.id}">${statuses.map(s => `<option ${s === f.status ? "selected" : ""}>${s}</option>`).join("")}</select></td></tr>`).join("")
+    <td><select data-fb="${f.id}">${statuses.map(s => `<option ${s === f.status ? "selected" : ""}>${s}</option>`).join("")}</select>
+      <div style="margin-top:6px"><button class="ghost" data-reply="${f.id}" data-note="${esc(f.admin_note || "")}">${f.admin_note ? "Zmień odpowiedź" : "Odpowiedz"}</button></div>
+      ${f.kind === "idea" ? `<label style="display:block;margin-top:6px"><input type="checkbox" data-public="${f.id}" ${f.is_public ? "checked" : ""}> Do głosowania</label>` : ""}
+      ${f.admin_note ? `<div class="muted" style="max-width:220px;white-space:pre-wrap">↳ ${esc(f.admin_note)}</div>` : ""}</td></tr>`).join("")
     || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
 }
 $("fbFilter").onchange = loadFeedback; $("fbReload").onclick = loadFeedback;
+$("feedback").onclick = async (e) => {
+  const b = e.target.closest("button[data-reply]"); if (!b) return;
+  const note = prompt("Odpowiedź dla gracza (widzi ją w Ustawienia → Moje zgłoszenia):", b.dataset.note || "");
+  if (note === null) return;
+  await check(sb.rpc("admin_reply_feedback", { p_id: Number(b.dataset.reply), p_note: note, p_status: null, p_public: null }));
+  toast("Odpowiedź zapisana"); loadFeedback();
+};
 $("feedback").onchange = async (e) => {
+  const pub = e.target.closest("input[data-public]");
+  if (pub) { await check(sb.rpc("admin_reply_feedback", { p_id: Number(pub.dataset.public), p_note: null, p_status: null, p_public: pub.checked })); return toast(pub.checked ? "Dodano do głosowania" : "Usunięto z głosowania"); }
   const s = e.target.closest("select[data-fb]"); if (!s) return;
   await check(sb.from("feedback").update({ status: s.value }).eq("id", s.dataset.fb));
   toast("Status zmieniony"); loadStats();
@@ -406,6 +613,7 @@ $("evRegion").innerHTML = REGIONS.map((n, i) => `<option value="${i + 1}" ${i ==
 resInputs("evReward", { crystals: 100, credits: 20000, steel: 20000 });
 resInputs("evTop", { crystals: 300 });
 resInputs("giftAllRes", { crystals: 100 });
+resInputs("giftGroupRes", { crystals: 50 });
 // HP of one boss crew in a single battle (same formula as the game).
 function battleHP() {
   const level = Math.min(60, Math.max(1, parseInt($("evLevel").value || "1", 10)));
