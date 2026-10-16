@@ -74,6 +74,7 @@
     <div class="row">
       <div><label for="mfaCode">Kod 6-cyfrowy</label><input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
       <div style="flex:0 0 auto"><button id="mfaVerify">Potwierdź</button></div>
+      <div style="flex:0 0 auto"><button class="ghost" id="mfaLogout">Wyloguj</button></div>
     </div>
   </section>
 
@@ -311,6 +312,13 @@ $("password").onkeydown = (e) => { if (e.key === "Enter") $("signIn").click(); }
 $("logout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
 async function start() {
+  try { await startInner(); } catch (e) {
+    console.error(e);
+    $("login").classList.remove("hidden");
+    $("loginMsg").textContent = "Błąd panelu: " + (e?.message || e) + " — spróbuj wylogować się i zalogować ponownie.";
+  }
+}
+async function startInner() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { $("login").classList.remove("hidden"); return; }
   $("login").classList.add("hidden");
@@ -334,15 +342,23 @@ let mfaSetup = null;
 function showMfa() { if (!mfaSetup) mfaSetup = setupMfa().catch((e) => { mfaSetup = null; throw e; }); return mfaSetup; }
 async function setupMfa() {
   $("mfa").classList.remove("hidden");
-  const { data } = await sb.auth.mfa.listFactors();
-  const verified = (data?.totp || []).find(f => f.status === "verified");
-  if (verified) { mfaFactorId = verified.id; $("mfaEnroll").classList.add("hidden"); $("mfaCode").focus(); return; }
-  // Drop half-finished enrolments, then start a new one.
-  for (const f of (data?.all || []).filter(f => f.factor_type === "totp" && f.status !== "verified")) await sb.auth.mfa.unenroll({ factorId: f.id });
-  const enrolled = await check(sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "DistrictX admin" }));
-  mfaFactorId = enrolled.id;
-  $("mfaQr").src = enrolled.totp.qr_code; $("mfaSecret").textContent = enrolled.totp.secret;
-  $("mfaEnroll").classList.remove("hidden");
+  $("mfaInfo").textContent = "Panel wymaga kodu z aplikacji uwierzytelniającej (Google Authenticator, 1Password, Hasła w iOS).";
+  try {
+    const { data, error } = await sb.auth.mfa.listFactors();
+    if (error) throw error;
+    const verified = (data?.totp || []).find(f => f.status === "verified");
+    if (verified) { mfaFactorId = verified.id; $("mfaEnroll").classList.add("hidden"); $("mfaCode").focus(); return; }
+    // Drop half-finished enrolments, then start a new one with a fresh QR.
+    for (const f of (data?.all || []).filter(f => f.status !== "verified")) await sb.auth.mfa.unenroll({ factorId: f.id });
+    const { data: enrolled, error: enrollError } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "DistrictX " + new Date().toISOString().slice(0, 16) });
+    if (enrollError) throw enrollError;
+    mfaFactorId = enrolled.id;
+    $("mfaQr").src = enrolled.totp.qr_code; $("mfaSecret").textContent = enrolled.totp.secret;
+    $("mfaEnroll").classList.remove("hidden");
+  } catch (e) {
+    $("mfaInfo").textContent = "Nie udało się przygotować 2FA: " + (e?.message || e) + ". Wyloguj się i zaloguj ponownie.";
+    throw e;
+  }
 }
 $("mfaVerify").onclick = async () => {
   const code = $("mfaCode").value.trim(); if (!/^\d{6}$/.test(code) || !mfaFactorId) return toast("Wpisz 6 cyfr", true);
@@ -352,6 +368,7 @@ $("mfaVerify").onclick = async () => {
   if (error) return toast("Zły kod – sprawdź, czy w aplikacji używasz wpisu z tego kodu QR (stare wpisy „DistrictX admin” usuń). " + error.message, true);
   $("mfaCode").value = ""; $("mfaEnroll").classList.add("hidden"); toast("Zweryfikowano"); start();
 };
+$("mfaLogout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 $("mfaCode").onkeydown = (e) => { if (e.key === "Enter") $("mfaVerify").click(); };
 
 // ---------- Calendar & boosts ----------
