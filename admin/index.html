@@ -31,6 +31,14 @@
   #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#1b2733; border:1px solid var(--line); padding:10px 16px; border-radius:10px; display:none; z-index:5; }
   .pill { display:inline-block; padding:1px 8px; border-radius:99px; background:#1b2733; font-size:12px; }
   .hidden { display:none !important; }
+  .bar { height:10px; background:#0e151d; border:1px solid var(--line); border-radius:99px; overflow:hidden; min-width:120px; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg, var(--danger), var(--amber)); }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 2px; }
+  .chips button { background:#1b2733; color:var(--fg); border:1px solid var(--line); padding:5px 10px; font-size:13px; }
+  .hint { color:var(--muted); font-size:13px; margin:6px 0 0; }
+  .card2 { background:#0e151d; border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:10px; }
+  .live { color:var(--danger); font-weight:700; }
+  input[type=checkbox] { width:auto; }
 </style>
 </head>
 <body>
@@ -62,6 +70,51 @@
       <div class="grid" id="stats" style="margin-top:12px"></div>
     </section>
 
+    <section id="eventsSection">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Wydarzenia na żywo: boss świata</h2><button class="ghost" style="flex:0 0 auto" id="evReload">Odśwież</button></div>
+      <p class="hint">Boss pojawia się od razu na mapie u wszystkich graczy (w ciągu ~45 s albo po otwarciu mapy). Gracze wysyłają marsze, każda bitwa zdejmuje wspólne punkty życia. Gdy boss padnie, każdy uczestnik dostaje nagrodę, a 3 najlepszych dodatkowo nagrodę TOP.</p>
+      <div class="chips">
+        <button data-preset="quick">Szybki boss · 30 min</button>
+        <button data-preset="evening">Wieczorny boss · 3 h</button>
+        <button data-preset="weekend">Boss weekendowy · 48 h</button>
+        <button data-preset="titan">Tytan dla całego serwera · 7 dni</button>
+      </div>
+      <div class="row">
+        <div><label for="evTitle">Nazwa bossa (widzą ją gracze)</label><input id="evTitle" maxlength="60" placeholder="np. Żelazny Kolos"></div>
+        <div><label for="evKind">Wygląd i wojownicy</label><select id="evKind">
+          <option value="corp_mercs">Najemnicy korporacji</option><option value="scrap_bots">Złomoboty</option><option value="street_gang">Gang uliczny</option></select></div>
+        <div><label for="evRegion">Region na mapie</label><select id="evRegion"></select></div>
+      </div>
+      <div class="row">
+        <div><label for="evLevel">Poziom (1–60)</label><input id="evLevel" type="number" min="1" max="60" value="20"></div>
+        <div><label for="evMult">Wytrzymałość w bitwie (×HP)</label><input id="evMult" type="number" min="1" max="500" value="20"></div>
+        <div><label for="evKills">Ile pełnych zwycięstw do pokonania</label><input id="evKills" type="number" min="1" value="50"></div>
+        <div><label for="evMinutes">Czas trwania (minuty)</label><input id="evMinutes" type="number" min="5" value="180"></div>
+        <div><label for="evCooldown">Przerwa między atakami gracza (s)</label><input id="evCooldown" type="number" min="0" value="60"></div>
+      </div>
+      <p class="hint" id="evCalc"></p>
+      <div class="row">
+        <div><label>Nagroda dla każdego uczestnika</label><div class="row" id="evReward"></div></div>
+      </div>
+      <div class="row">
+        <div><label>Dodatkowa nagroda TOP 3 (obrażenia)</label><div class="row" id="evTop"></div></div>
+      </div>
+      <div class="row">
+        <div><label for="evStart">Start (puste = teraz)</label><input id="evStart" type="datetime-local"></div>
+        <div style="flex:0 0 auto"><label><input type="checkbox" id="evAnnounce" checked> Ogłoś w czacie świata i w ogłoszeniach</label></div>
+        <div style="flex:0 0 auto"><button id="evCreate">Wypuść bossa</button></div>
+      </div>
+      <div class="scroll" style="margin-top:12px"><table id="events"><thead><tr><th>Boss</th><th>HP</th><th>Gracze</th><th>Koniec</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section>
+      <h2>Prezent dla wszystkich</h2>
+      <div class="row" id="giftAllRes"></div>
+      <div class="row">
+        <div><label for="giftAllNote">Notatka (widzi gracz)</label><input id="giftAllNote" value="Prezent od zespołu DistrictX"></div>
+        <div><label for="giftAllDays">Tylko aktywni w ostatnich dniach (puste = wszyscy)</label><input id="giftAllDays" type="number" min="1" placeholder="np. 7"></div>
+        <div style="flex:0 0 auto"><button id="giftAllSend">Wyślij wszystkim</button></div>
+      </div>
+    </section>
     <section>
       <h2>Ekonomia i limity</h2>
       <div class="row">
@@ -91,6 +144,27 @@
         <div style="flex:0 0 auto"><button id="playerSearch">Szukaj</button></div>
       </div>
       <div class="scroll"><table id="players"><thead><tr><th>Gracz</th><th>Siła</th><th>HQ</th><th>Ostatnio</th><th>Status</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
+      <div id="playerDetail" class="card2 hidden"></div>
+    </section>
+    <section>
+      <h2>Sojusze</h2>
+      <div class="row">
+        <div><label for="allyQuery">Nazwa lub tag</label><input id="allyQuery"></div>
+        <div style="flex:0 0 auto"><button id="allySearch">Szukaj</button></div>
+      </div>
+      <div class="scroll"><table id="alliances"><thead><tr><th>Sojusz</th><th>Lider</th><th>Członkowie</th><th>Siła</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section>
+      <h2>Czat i moderacja</h2>
+      <div class="row">
+        <div><label for="chatChannel">Kanał</label><select id="chatChannel"><option value="reported">Zgłoszone wiadomości</option><option value="world">Czat świata</option></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="chatReload">Odśwież</button></div>
+      </div>
+      <div class="row">
+        <div><label for="sysMsg">Wiadomość systemowa na czat świata (jako „DistrictX”)</label><input id="sysMsg" maxlength="400"></div>
+        <div style="flex:0 0 auto"><button id="sysSend">Wyślij</button></div>
+      </div>
+      <div class="scroll"><table id="chat"><thead><tr><th>Data</th><th>Gracz</th><th>Treść</th><th>Zgł.</th><th></th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section>
@@ -174,13 +248,13 @@ async function start() {
   const { data: isAdmin } = await sb.rpc("is_admin");
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
-  loadStats(); loadConfig(); searchPlayers(); loadFeedback(); loadAnnouncements(); loadPurchases();
+  loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
 }
 
 async function loadStats() {
   const s = await check(sb.rpc("admin_stats"));
   const labels = { players:"Gracze", active_24h:"Aktywni 24 h", active_7d:"Aktywni 7 dni", new_24h:"Nowi 24 h", alliances:"Sojusze",
-    purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu", waitlist:"Lista oczekujących" };
+    purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu", waitlist:"Lista oczekujących", events_live:"Bossowie na żywo", attacks_24h:"Ataki PvP 24 h" };
   $("stats").innerHTML = Object.entries(labels).map(([k, l]) => `<div class="stat"><b>${esc(s[k] ?? 0)}</b><small>${l}</small></div>`).join("");
 }
 $("refreshStats").onclick = loadStats;
@@ -231,6 +305,7 @@ async function searchPlayers() {
     <td>${esc(p.power)}</td><td>${esc(p.hq_level)}</td><td>${when(p.last_seen_at)}</td>
     <td>${p.is_banned ? '<span class="pill err">ban</span>' : ''} ${p.muted_until && new Date(p.muted_until) > new Date() ? '<span class="pill">wyciszony</span>' : ''}</td>
     <td class="row" style="gap:6px">
+      <button data-act="detail" data-id="${esc(p.id)}">Szczegóły</button>
       <button class="ghost" data-act="gift" data-id="${esc(p.id)}">Prezent</button>
       <button class="ghost" data-act="mute" data-id="${esc(p.id)}">Wycisz 24 h</button>
       <button class="ghost" data-act="unmute" data-id="${esc(p.id)}">Odcisz</button>
@@ -242,6 +317,7 @@ $("playerQuery").onkeydown = (e) => { if (e.key === "Enter") searchPlayers(); };
 $("players").onclick = async (e) => {
   const b = e.target.closest("button[data-act]"); if (!b) return;
   const id = b.dataset.id, act = b.dataset.act;
+  if (act === "detail") { showPlayer(id); return; }
   if (act === "gift") {
     const text = prompt('Zasoby jako JSON, np. {"crystals": 500, "steel": 10000}', '{"crystals": 500}');
     if (!text) return;
@@ -311,6 +387,196 @@ $("wlExport").onclick = async () => {
   const rows = await check(sb.from("waitlist").select("email,language,source,created_at").order("created_at"));
   const csv = "email,language,source,created_at\n" + rows.map(r => [r.email, r.language, r.source, r.created_at].map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "waitlist.csv"; a.click();
+};
+
+
+// ---------- Live events: world boss ----------
+const RES = [["crystals","Kryształy"],["credits","Kredyty"],["steel","Stal"],["energy","Energia"],["data","Dane"]];
+const REGIONS = ["Stolica","Neonowe Doki","Stara Odlewnia","Iglica Danych","Krąg Targowy","Pola Słoneczne","Rdzawa Dzielnica","Szklane Wzgórza","Podziemne Linie"];
+const MOBS = { street_gang: [1100, 650, 520, 800], scrap_bots: [1500, 700, 600, 700], corp_mercs: [1250, 620, 480, 450] };
+function resInputs(id, defaults) {
+  $(id).innerHTML = RES.map(([k, l]) => `<div><label>${l}</label><input type="number" min="0" step="100" data-res="${k}" value="${defaults[k] ?? ""}"></div>`).join("");
+}
+function readRes(id) {
+  const out = {};
+  $(id).querySelectorAll("input[data-res]").forEach(i => { const v = parseInt(i.value || "0", 10); if (v > 0) out[i.dataset.res] = v; });
+  return out;
+}
+$("evRegion").innerHTML = REGIONS.map((n, i) => `<option value="${i + 1}" ${i === 4 ? "selected" : ""}>${i + 1}. ${n}</option>`).join("");
+resInputs("evReward", { crystals: 100, credits: 20000, steel: 20000 });
+resInputs("evTop", { crystals: 300 });
+resInputs("giftAllRes", { crystals: 100 });
+// HP of one boss crew in a single battle (same formula as the game).
+function battleHP() {
+  const level = Math.min(60, Math.max(1, parseInt($("evLevel").value || "1", 10)));
+  const mult = Math.max(1, parseInt($("evMult").value || "1", 10));
+  const [leader, ...minions] = MOBS[$("evKind").value];
+  const count = level >= 16 ? 3 : (level >= 6 ? 2 : 1);
+  const factor = Math.pow(1.10, level - 1);
+  const raw = [leader, ...minions.slice(0, count)].reduce((a, hp) => a + Math.round(hp * factor), 0);
+  return raw * mult;
+}
+function updateCalc() {
+  const hp = battleHP(), kills = Math.max(1, parseInt($("evKills").value || "1", 10));
+  $("evCalc").textContent = `Wspólne HP: ${(hp * kills).toLocaleString("pl-PL")} · jedna bitwa zdejmie najwyżej ${hp.toLocaleString("pl-PL")} (pełne zwycięstwo). Wyższy poziom = silniejsi wojownicy, większe ×HP = dłuższa walka w jednej bitwie.`;
+}
+["evLevel","evMult","evKills","evKind"].forEach(id => $(id).addEventListener("input", updateCalc));
+updateCalc();
+const PRESETS = {
+  quick:   { level: 10, mult: 8,  kills: 15,  minutes: 30,    cooldown: 30,  reward: { crystals: 50, credits: 10000 },             top: { crystals: 150 } },
+  evening: { level: 20, mult: 20, kills: 60,  minutes: 180,   cooldown: 60,  reward: { crystals: 100, credits: 20000, steel: 20000 }, top: { crystals: 300 } },
+  weekend: { level: 35, mult: 40, kills: 300, minutes: 2880,  cooldown: 120, reward: { crystals: 250, credits: 60000, steel: 60000, energy: 40000 }, top: { crystals: 800 } },
+  titan:   { level: 55, mult: 80, kills: 1500, minutes: 10080, cooldown: 300, reward: { crystals: 600, credits: 150000, steel: 150000, energy: 100000, data: 50000 }, top: { crystals: 2000 } }
+};
+document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
+  const p = PRESETS[b.dataset.preset];
+  $("evLevel").value = p.level; $("evMult").value = p.mult; $("evKills").value = p.kills; $("evMinutes").value = p.minutes; $("evCooldown").value = p.cooldown;
+  resInputs("evReward", p.reward); resInputs("evTop", p.top); updateCalc();
+  if (!$("evTitle").value) $("evTitle").value = { quick: "Szybki najeźdźca", evening: "Żelazny Kolos", weekend: "Władca Rdzy", titan: "Tytan Miasta" }[b.dataset.preset];
+});
+$("evCreate").onclick = async () => {
+  const title = $("evTitle").value.trim(); if (!title) return toast("Podaj nazwę bossa", true);
+  const hp = battleHP(), kills = Math.max(1, parseInt($("evKills").value || "1", 10));
+  const minutes = Math.max(5, parseInt($("evMinutes").value || "60", 10));
+  const start = $("evStart").value ? new Date($("evStart").value).toISOString() : null;
+  if (!confirm(`Wypuścić bossa „${title}” na ${minutes} min?`)) return;
+  $("evCreate").disabled = true;
+  try {
+    await check(sb.rpc("admin_create_world_boss", {
+      p_title: title, p_mob_kind: $("evKind").value, p_level: parseInt($("evLevel").value, 10), p_hp_multiplier: parseInt($("evMult").value, 10),
+      p_max_hp: hp * kills, p_region: parseInt($("evRegion").value, 10), p_minutes: minutes,
+      p_reward: readRes("evReward"), p_top_reward: readRes("evTop"), p_max_hit: hp,
+      p_cooldown: Math.max(0, parseInt($("evCooldown").value || "0", 10)), p_starts_at: start
+    }));
+    if ($("evAnnounce").checked) {
+      const region = REGIONS[parseInt($("evRegion").value, 10) - 1];
+      await sb.rpc("admin_post_system_message", { p_body: `⚠️ BOSS ŚWIATA: ${title} pojawił się w regionie ${region}! / WORLD BOSS: ${title} has appeared in ${region}! Map → attack together.` });
+      await sb.from("announcements").insert({
+        title: { pl: `Boss świata: ${title}`, en: `World boss: ${title}` },
+        body: { pl: `Pojawił się w regionie ${region}. Otwórz Mapę i walczcie razem. Każdy uczestnik dostanie nagrodę, gdy boss padnie.`,
+                en: `It appeared in ${region}. Open the Map and fight together. Everyone who joins gets a reward when it falls.` },
+        starts_at: start || new Date().toISOString(), ends_at: new Date((start ? new Date(start) : new Date()).getTime() + minutes * 60000).toISOString()
+      });
+    }
+    toast("Boss wypuszczony"); $("evTitle").value = ""; loadEvents(); loadStats();
+  } finally { $("evCreate").disabled = false; }
+};
+async function loadEvents() {
+  const rows = await check(sb.rpc("admin_world_events"));
+  const status = { active: '<span class="live">● trwa</span>', defeated: '<span class="ok">pokonany</span>', expired: '<span class="muted">czas minął</span>', cancelled: '<span class="muted">anulowany</span>' };
+  $("events").querySelector("tbody").innerHTML = rows.map(e => {
+    const ratio = e.max_hp > 0 ? Math.max(0, e.hp) / e.max_hp : 0;
+    const live = e.status === "active" && new Date(e.ends_at) > new Date();
+    const top = (e.top || []).slice(0, 3).map((t, i) => `${i + 1}. ${esc(t.name)} (${Number(t.damage).toLocaleString("pl-PL")})`).join("<br>");
+    return `<tr><td><b>${esc(e.title)}</b><br><small class="muted">${esc(e.mob_kind)} · poz. ${e.level} · region ${e.region_id}</small></td>
+      <td><div class="bar"><i style="width:${(ratio * 100).toFixed(1)}%"></i></div><small class="muted">${Number(e.hp).toLocaleString("pl-PL")} / ${Number(e.max_hp).toLocaleString("pl-PL")}</small></td>
+      <td>${e.fighters}<br><small class="muted">${top}</small></td><td>${when(e.ends_at)}</td>
+      <td>${live ? status.active : (status[e.status] || esc(e.status))}</td>
+      <td class="row" style="gap:6px">${live ? `<button class="ghost" data-ev="pay" data-id="${e.id}">Zakończ z nagrodą</button><button class="warn" data-ev="cancel" data-id="${e.id}">Anuluj</button>` : ""}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="muted">Brak wydarzeń</td></tr>`;
+}
+$("evReload").onclick = loadEvents;
+$("events").onclick = async (e) => {
+  const b = e.target.closest("button[data-ev]"); if (!b) return;
+  const pay = b.dataset.ev === "pay";
+  if (!confirm(pay ? "Zakończyć i wypłacić nagrody uczestnikom?" : "Anulować bez nagród?")) return;
+  await check(sb.rpc("admin_end_world_event", { p_event: b.dataset.id, p_pay: pay }));
+  toast(pay ? "Zakończono, nagrody wysłane" : "Anulowano"); loadEvents();
+};
+setInterval(() => { if (!$("app").classList.contains("hidden") && !document.hidden) loadEvents().catch(() => {}); }, 10000);
+$("giftAllSend").onclick = async () => {
+  const res = readRes("giftAllRes"); if (!Object.keys(res).length) return toast("Wpisz zasoby", true);
+  const days = $("giftAllDays").value ? parseInt($("giftAllDays").value, 10) : null;
+  if (!confirm(`Wysłać ${JSON.stringify(res)} ${days ? "aktywnym z " + days + " dni" : "wszystkim graczom"}?`)) return;
+  const n = await check(sb.rpc("admin_gift_all", { p_resources: res, p_note: $("giftAllNote").value.trim(), p_active_days: days }));
+  toast(`Wysłano do ${n} graczy`);
+};
+
+// ---------- Player detail ----------
+const ENTITLEMENTS = ["general_pass","major_pass","auto_battle","battle_speed_x4","battle_instant","auto_collect","auto_help","auto_help_offline","extra_march_1","extra_march_2","translator"];
+async function showPlayer(id) {
+  const d = await check(sb.rpc("admin_player", { p_user: id }));
+  const p = d.profile || {};
+  const ents = (d.entitlements || []).map(e => `<span class="pill">${esc(e.entitlement)} · ${e.product_id === "admin_grant" ? "od zespołu" : "sklep"} · ${e.expires_at ? "do " + when(e.expires_at) : "bezterminowo"}
+     <a href="#" data-revoke="${esc(e.entitlement)}" style="color:var(--danger)">×</a></span>`).join(" ") || '<span class="muted">brak</span>';
+  const socials = Object.entries(p.socials || {}).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(", ") || "—";
+  const shield = p.shield_until && new Date(p.shield_until) > new Date() ? "do " + when(p.shield_until) : "brak";
+  $("playerDetail").innerHTML = `
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(p.display_name)}</h2><button class="ghost" style="flex:0 0 auto" id="pdClose">Zamknij</button></div>
+    <p class="muted">ID ${esc(p.id)} · język ${esc(p.language)} · siła ${esc(p.power)} · HQ ${esc(p.hq_level)} · region ${esc(p.region_id)} · konto od ${when(p.created_at)} · ostatnio ${when(p.last_seen_at)}</p>
+    <p>Sojusz: ${d.alliance ? `[${esc(d.alliance.tag)}] ${esc(d.alliance.name)}` : "—"} · Ochrona: ${shield} · Zakupy: ${d.purchases} · Ataki: ${d.attacks} · Prezenty czekające: ${d.pending_gifts}</p>
+    <p>Sieci społecznościowe: ${socials}</p>
+    <p>Subskrypcje: ${ents}</p>
+    <div class="row">
+      <div><label>Ochrona (godziny, 0 = zdejmij)</label><input id="pdShield" type="number" min="0" value="24"></div>
+      <div style="flex:0 0 auto"><button id="pdShieldSet">Ustaw ochronę</button></div>
+      <div><label>Nowa nazwa</label><input id="pdName" value="${esc(p.display_name)}"></div>
+      <div style="flex:0 0 auto"><button id="pdRename">Zmień nazwę</button></div>
+    </div>
+    <div class="row">
+      <div><label>Nadaj subskrypcję</label><select id="pdEnt">${ENTITLEMENTS.map(e => `<option>${e}</option>`).join("")}</select></div>
+      <div><label>Na ile dni (0 = bezterminowo)</label><input id="pdDays" type="number" min="0" value="7"></div>
+      <div style="flex:0 0 auto"><button id="pdGrant">Nadaj</button></div>
+    </div>`;
+  $("playerDetail").classList.remove("hidden");
+  $("pdClose").onclick = () => $("playerDetail").classList.add("hidden");
+  $("pdShieldSet").onclick = async () => { await check(sb.rpc("admin_set_shield", { p_user: id, p_hours: parseFloat($("pdShield").value || "0") })); toast("Ochrona ustawiona"); showPlayer(id); };
+  $("pdRename").onclick = async () => { await check(sb.rpc("admin_rename_player", { p_user: id, p_name: $("pdName").value })); toast("Nazwa zmieniona"); showPlayer(id); searchPlayers(); };
+  $("pdGrant").onclick = async () => { await check(sb.rpc("admin_grant_entitlement", { p_user: id, p_entitlement: $("pdEnt").value, p_days: parseInt($("pdDays").value || "0", 10) })); toast("Nadano"); showPlayer(id); };
+  $("playerDetail").querySelectorAll("[data-revoke]").forEach(a => a.onclick = async (ev) => {
+    ev.preventDefault(); if (!confirm("Odebrać " + a.dataset.revoke + "?")) return;
+    await check(sb.rpc("admin_revoke_entitlement", { p_user: id, p_entitlement: a.dataset.revoke })); toast("Odebrano"); showPlayer(id);
+  });
+  $("playerDetail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ---------- Alliances ----------
+async function searchAlliances() {
+  const rows = await check(sb.rpc("admin_alliances", { p_query: $("allyQuery").value.trim() }));
+  $("alliances").querySelector("tbody").innerHTML = rows.map(a => `<tr>
+    <td><b>[${esc(a.tag)}] ${esc(a.name)}</b><br><small class="muted">${a.is_open ? "otwarty" : "na zaproszenie"} · od ${when(a.created_at)}</small></td>
+    <td>${esc(a.leader_name)}</td><td>${a.member_count}</td><td>${a.power}</td>
+    <td class="row" style="gap:6px"><button class="ghost" data-ally="edit" data-id="${a.id}" data-name="${esc(a.name)}" data-tag="${esc(a.tag)}">Edytuj</button>
+      <button class="warn" data-ally="disband" data-id="${a.id}" data-name="${esc(a.name)}">Rozwiąż</button></td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
+}
+$("allySearch").onclick = searchAlliances;
+$("allyQuery").onkeydown = (e) => { if (e.key === "Enter") searchAlliances(); };
+$("alliances").onclick = async (e) => {
+  const b = e.target.closest("button[data-ally]"); if (!b) return;
+  if (b.dataset.ally === "edit") {
+    const name = prompt("Nazwa sojuszu", b.dataset.name); if (name === null) return;
+    const tag = prompt("Tag (2–5 znaków)", b.dataset.tag); if (tag === null) return;
+    await check(sb.rpc("admin_update_alliance", { p_alliance: b.dataset.id, p_name: name, p_tag: tag, p_description: null }));
+    toast("Zapisano"); searchAlliances();
+  } else {
+    if (!confirm(`Rozwiązać sojusz „${b.dataset.name}”? Członkowie zostaną bez sojuszu.`)) return;
+    await check(sb.rpc("admin_disband_alliance", { p_alliance: b.dataset.id }));
+    toast("Sojusz rozwiązany"); searchAlliances(); loadStats();
+  }
+};
+
+// ---------- Chat ----------
+async function loadChat() {
+  const rows = await check(sb.rpc("admin_chat", { p_channel: $("chatChannel").value, p_limit: 100 }));
+  $("chat").querySelector("tbody").innerHTML = rows.map(m => `<tr style="${m.is_hidden ? "opacity:.5" : ""}">
+    <td>${when(m.created_at)}<br><small class="muted">${esc(m.channel)}</small></td>
+    <td>${esc(m.sender_name)}<br><small class="muted">${esc(m.sender_id)}</small></td>
+    <td style="max-width:420px; white-space:pre-wrap">${esc(m.body)}</td><td>${m.reports || ""}</td>
+    <td class="row" style="gap:6px"><button class="ghost" data-msg="${m.id}" data-hide="${!m.is_hidden}">${m.is_hidden ? "Przywróć" : "Ukryj"}</button>
+      <button class="ghost" data-mute="${esc(m.sender_id)}">Wycisz 24 h</button></td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
+}
+$("chatChannel").onchange = loadChat; $("chatReload").onclick = loadChat;
+$("chat").onclick = async (e) => {
+  const hide = e.target.closest("button[data-msg]");
+  if (hide) { await check(sb.rpc("admin_hide_message", { p_message: parseInt(hide.dataset.msg, 10), p_hidden: hide.dataset.hide === "true" })); toast("Zapisano"); loadChat(); loadStats(); return; }
+  const mute = e.target.closest("button[data-mute]");
+  if (mute) { await check(sb.rpc("admin_moderate", { p_user: mute.dataset.mute, p_mute_hours: 24, p_ban: null })); toast("Wyciszono na 24 h"); }
+};
+$("sysSend").onclick = async () => {
+  const body = $("sysMsg").value.trim(); if (!body) return;
+  await check(sb.rpc("admin_post_system_message", { p_body: body })); $("sysMsg").value = ""; toast("Wysłano"); if ($("chatChannel").value === "world") loadChat();
 };
 
 sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN") start(); });
