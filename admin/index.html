@@ -161,6 +161,12 @@
       <div class="row" style="margin-top:8px"><div style="flex:0 0 auto"><button id="vipSave">Zapisz progi VIP</button></div><div style="flex:0 0 auto"><button class="ghost" id="vipDefaults">Wstaw domyślne</button></div></div>
     </section>
     <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Filtr wulgaryzmów</h2><button class="ghost" style="flex:0 0 auto" id="bwReload">Odśwież</button></div>
+      <p class="muted">Słowa zamieniane na *** w czacie, nazwach graczy i sojuszy. Jedno na linię: <b>słowo</b> (wszędzie w tekście – chiński, koreański, arabski, hebrajski), <b>rdzeń*</b> (słowo zaczynające się od rdzenia, np. kurw*), <b>=słowo</b> (tylko całe słowo, np. =suka nie rusza „sukces”).</p>
+      <textarea id="bwList" rows="12" style="width:100%; font-family:ui-monospace,monospace"></textarea>
+      <div class="row" style="margin-top:8px"><div style="flex:0 0 auto"><button id="bwSave">Zapisz listę</button></div><div class="muted" id="bwCount"></div></div>
+    </section>
+    <section>
       <h2>Promocja w sklepie</h2>
       <p class="muted">Dodatkowe kryształy do każdego pakietu kryształów, dopóki trwa promocja (baner w sklepie gry).</p>
       <div class="row">
@@ -375,7 +381,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
 
@@ -536,6 +542,19 @@ async function loadVip() {
   showVip(thresholds || VIP_DEFAULTS, counts);
 }
 $("vipReload").onclick = () => loadVip().catch(() => {});
+// ---------- Profanity filter ----------
+async function loadBlockedWords() {
+  const rows = await check(sb.rpc("admin_blocked_words"));
+  $("bwList").value = (rows || []).map(r => r.mode === "prefix" ? r.word + "*" : r.mode === "word" ? "=" + r.word : r.word).join("\n");
+  $("bwCount").textContent = `${(rows || []).length} słów`;
+}
+$("bwReload").onclick = () => loadBlockedWords().catch(() => {});
+$("bwSave").onclick = async () => {
+  const words = $("bwList").value.split("\n").map(l => l.trim()).filter(Boolean).map(l =>
+    l.endsWith("*") ? { word: l.slice(0, -1), mode: "prefix" } : l.startsWith("=") ? { word: l.slice(1), mode: "word" } : { word: l, mode: "any" });
+  const n = await check(sb.rpc("admin_set_blocked_words", { p_words: words }));
+  toast(`Zapisano ${n} słów`); loadBlockedWords();
+};
 $("vipDefaults").onclick = () => showVip(VIP_DEFAULTS, null);
 $("vipSave").onclick = async () => {
   const values = [];
