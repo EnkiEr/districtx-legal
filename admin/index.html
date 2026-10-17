@@ -203,6 +203,16 @@
       <div class="scroll"><table id="disputes"><thead><tr><th>Data</th><th>Atakujący</th><th>Obrońca</th><th>Łup</th><th>Flagi atakującego</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Kopie zapasowe</h2><button class="ghost" style="flex:0 0 auto" id="bkReload">Odśwież</button></div>
+      <p class="muted">Kopia zawiera wszystkie tabele gry (gracze, zapisy, sojusze, czat, zakupy, ustawienia) w jednym pliku JSON. Co noc o 4:15 (czasu polskiego) baza robi kopię automatycznie i trzyma ją 14 dni. Pobieraj kopię do pliku raz w tygodniu – to jedyna kopia poza serwerem na darmowym planie.</p>
+      <div class="row">
+        <div style="flex:0 0 auto"><button id="bkDownload">Pobierz pełną kopię teraz</button></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="bkNow">Zapisz kopię w chmurze</button></div>
+        <div style="flex:0 0 auto"><label class="ghost" style="display:inline-block;padding:8px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer">Wgraj ustawienia z pliku<input id="bkRestore" type="file" accept="application/json,.json" style="display:none"></label></div>
+      </div>
+      <div class="scroll" style="margin-top:12px"><table id="backups"><thead><tr><th>Data</th><th>Rodzaj</th><th>Rozmiar</th><th></th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section>
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Konta z bety (TestFlight)</h2><button class="ghost" style="flex:0 0 auto" id="betaReload">Odśwież</button></div>
       <p class="muted">Każde konto założone przed premierą w App Store jest oznaczone jako beta. 1) Gdy Apple zaakceptuje grę i ją wydasz, ustaw datę premiery – od niej nowe konta są zwykłymi graczami. 2) Wtedy możesz jednym przyciskiem usunąć konta z bety (bez kont admina), ich sojusze i zakupy testowe (sandbox). Usunięcia nie da się cofnąć.</p>
       <div class="grid" id="betaStats" style="margin:8px 0"></div>
@@ -365,7 +375,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBeta().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
 
@@ -539,6 +549,38 @@ $("vipSave").onclick = async () => {
   if (!values.length) return toast("Wpisz przynajmniej próg VIP 1", true);
   const changed = await check(sb.rpc("admin_set_vip_thresholds", { p_thresholds: values }));
   toast(`Zapisano ${values.length} poziomów VIP · przeliczono ${changed} graczy`); loadVip(); loadStats();
+};
+
+// ---------- Backups ----------
+function saveJson(data, name) {
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB"; }
+async function loadBackups() {
+  const rows = await check(sb.rpc("admin_list_backups"));
+  $("backups").querySelector("tbody").innerHTML = rows.map(b => `<tr><td>${when(b.created_at)}</td><td>${b.kind === "daily" ? "automatyczna" : "ręczna"}</td><td>${fmtSize(b.size_bytes)}</td><td><button class="ghost" data-bk="${b.id}" data-at="${esc(b.created_at)}">Pobierz</button></td></tr>`).join("") || `<tr><td colspan="4" class="muted">Brak kopii</td></tr>`;
+}
+$("bkReload").onclick = () => loadBackups().catch(() => {});
+$("bkDownload").onclick = async () => {
+  $("bkDownload").disabled = true;
+  try { const data = await check(sb.rpc("admin_export")); saveJson(data, `districtx-backup-${new Date().toISOString().slice(0, 10)}.json`); toast("Kopia pobrana"); }
+  finally { $("bkDownload").disabled = false; }
+};
+$("bkNow").onclick = async () => { await check(sb.rpc("admin_backup_now")); toast("Kopia zapisana w chmurze"); loadBackups(); };
+$("backups").onclick = async (e) => {
+  const b = e.target.closest("button[data-bk]"); if (!b) return;
+  const data = await check(sb.rpc("admin_get_backup", { p_id: Number(b.dataset.bk) }));
+  saveJson(data, `districtx-backup-${b.dataset.at.slice(0, 10)}-${b.dataset.bk}.json`);
+};
+$("bkRestore").onchange = async (e) => {
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+  let data; try { data = JSON.parse(await file.text()); } catch { return toast("To nie jest plik kopii", true); }
+  if (data.app !== "districtx" || !data.tables) return toast("To nie jest kopia DistrictX", true);
+  if (!confirm(`Przywrócić ustawienia z kopii z ${when(data.created_at)}? Zostaną nadpisane: konfiguracja na żywo (VIP, przyspieszenia, czasy budowy, promocje, boosty) i produkty sklepu. Dane graczy zostają bez zmian.`)) return;
+  const r = await check(sb.rpc("admin_restore_settings", { p_data: data }));
+  toast(`Przywrócono: ${r.live_config} ustawień, ${r.store_products} produktów`); loadConfig(); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadPromo().catch(() => {});
 };
 
 // ---------- Beta accounts ----------
