@@ -203,6 +203,16 @@
       <div class="scroll"><table id="disputes"><thead><tr><th>Data</th><th>Atakujący</th><th>Obrońca</th><th>Łup</th><th>Flagi atakującego</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Konta z bety (TestFlight)</h2><button class="ghost" style="flex:0 0 auto" id="betaReload">Odśwież</button></div>
+      <p class="muted">Każde konto założone przed premierą w App Store jest oznaczone jako beta. 1) Gdy Apple zaakceptuje grę i ją wydasz, ustaw datę premiery – od niej nowe konta są zwykłymi graczami. 2) Wtedy możesz jednym przyciskiem usunąć konta z bety (bez kont admina), ich sojusze i zakupy testowe (sandbox). Usunięcia nie da się cofnąć.</p>
+      <div class="grid" id="betaStats" style="margin:8px 0"></div>
+      <div class="row">
+        <div><label for="betaLaunch">Premiera w App Store (puste = teraz)</label><input id="betaLaunch" type="datetime-local"></div>
+        <div style="flex:0 0 auto"><button id="betaSetLaunch">Ustaw datę premiery</button></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="betaPurge" style="border-color:var(--danger);color:var(--danger)">Usuń konta z bety</button></div>
+      </div>
+    </section>
+    <section>
       <h2>Prezent dla wszystkich</h2>
       <div class="row" id="giftAllRes"></div>
       <div class="row">
@@ -355,7 +365,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBeta().catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
 
@@ -531,6 +541,34 @@ $("vipSave").onclick = async () => {
   toast(`Zapisano ${values.length} poziomów VIP · przeliczono ${changed} graczy`); loadVip(); loadStats();
 };
 
+// ---------- Beta accounts ----------
+let betaInfo = null;
+async function loadBeta() {
+  betaInfo = await check(sb.rpc("admin_beta_summary"));
+  const b = betaInfo;
+  $("betaStats").innerHTML = [
+    [b.beta_accounts, "Konta z bety"], [b.beta_alliances, "Sojusze graczy z bety"], [b.sandbox_purchases, "Zakupy testowe"],
+    [b.live_accounts, "Gracze ze sklepu"], [b.store_launch_at ? when(b.store_launch_at) : "nie ustawiona", "Data premiery"]
+  ].map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><small>${l}</small></div>`).join("");
+  $("betaPurge").disabled = !b.store_launch_at;
+  $("betaPurge").title = b.store_launch_at ? "" : "Najpierw ustaw datę premiery";
+}
+$("betaReload").onclick = () => loadBeta().catch(() => {});
+$("betaSetLaunch").onclick = async () => {
+  const at = $("betaLaunch").value ? new Date($("betaLaunch").value) : new Date();
+  if (!confirm(`Ustawić premierę na ${at.toLocaleString("pl-PL")}? Konta założone później nie będą oznaczane jako beta.`)) return;
+  await check(sb.rpc("admin_set_store_launch", { p_at: at.toISOString() }));
+  toast("Data premiery zapisana"); loadBeta();
+};
+$("betaPurge").onclick = async () => {
+  if (!betaInfo?.store_launch_at) return toast("Najpierw ustaw datę premiery", true);
+  const word = prompt(`Usunąć ${betaInfo.beta_accounts} kont z bety, ${betaInfo.beta_alliances} sojuszy i ${betaInfo.sandbox_purchases} zakupów testowych? Tego nie da się cofnąć. Wpisz DELETE, aby potwierdzić.`);
+  if (word !== "DELETE") return toast("Anulowano");
+  const r = await check(sb.rpc("admin_purge_beta", { p_confirm: "DELETE" }));
+  toast(`Usunięto: ${r.accounts} kont, ${r.alliances} sojuszy, ${r.purchases} zakupów testowych`);
+  loadBeta(); loadStats(); searchPlayers(); searchAlliances().catch(() => {});
+};
+
 // ---------- Shop promo ----------
 async function loadPromo() {
   const rows = await check(sb.from("live_config").select("value").eq("key", "shop_promo"));
@@ -600,7 +638,7 @@ async function loadStats() {
   const labels = { players:"Gracze", active_24h:"Aktywni 24 h", active_7d:"Aktywni 7 dni", new_24h:"Nowi 24 h", alliances:"Sojusze",
     purchases_7d:"Zakupy 7 dni", purchases_total:"Zakupy razem", paying_users:"Płacący gracze", feedback_new:"Nowe opinie", reports_open:"Zgłoszenia czatu", waitlist:"Lista oczekujących", events_live:"Bossowie na żywo", attacks_24h:"Ataki PvP 24 h",
     retention_d1:"Retencja D1 %", retention_d7:"Retencja D7 %", retention_d30:"Retencja D30 %", revenue_usd:"Przychód brutto $", revenue_7d_usd:"Przychód 7 dni $",
-    paying_percent:"Płacący %", vip_players:"Gracze VIP", referrals:"Polecenia", disputes:"Spory PvP", push_devices:"Urządzenia push" };
+    paying_percent:"Płacący %", vip_players:"Gracze VIP", beta_accounts:"Konta z bety", referrals:"Polecenia", disputes:"Spory PvP", push_devices:"Urządzenia push" };
   $("stats").innerHTML = Object.entries(labels).map(([k, l]) => `<div class="stat"><b>${esc(s[k] ?? 0)}</b><small>${l}</small></div>`).join("");
 }
 $("refreshStats").onclick = loadStats;
