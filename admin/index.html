@@ -137,6 +137,24 @@
       <div class="scroll" style="margin-top:12px"><table id="calendar"><thead><tr><th>Typ</th><th>Co</th><th>Od</th><th>Do</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
     </section>
     <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Przyspieszenia i czasy budowy</h2><button class="ghost" style="flex:0 0 auto" id="tunReload">Odśwież</button></div>
+      <p class="muted">Gracze dostają zmiany przy najbliższej synchronizacji (zwykle w ciągu minuty). Puste pole = wartość domyślna gry.</p>
+      <div class="row">
+        <div><label for="tunFreeBuild">Darmowe dokończenie budowy poniżej (s)</label><input id="tunFreeBuild" type="number" min="0" placeholder="0 (brak)"></div>
+        <div><label for="tunFreeResearch">Darmowe dokończenie badań poniżej (s)</label><input id="tunFreeResearch" type="number" min="0" placeholder="0 (brak)"></div>
+        <div><label for="tunFreeOther">Darmowe przyspieszenie wojska i marszów poniżej (s)</label><input id="tunFreeOther" type="number" min="0"></div>
+        <div><label for="tunVip">Dodatkowe darmowe sekundy na poziom VIP (wojsko, marsze)</label><input id="tunVip" type="number" min="0" placeholder="180"></div>
+        <div><label for="tunPercent">Wszystkie czasy budowy (%)</label><input id="tunPercent" type="number" min="1" max="1000" placeholder="100"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="tunResetBuilding">Przywróć domyślne dla budynku</button></div>
+        <div style="flex:0 0 auto"><button id="tunSave">Zapisz ustawienia</button></div>
+      </div>
+      <p class="muted">Czas budowy poziomu podawaj jako 30s, 15m, 2h, 1d 4h albo liczbę sekund. Puste = domyślny. Badania sojuszu i boosty skracają go dalej.</p>
+      <div class="scroll" style="max-height:420px"><table id="tunLevels"><thead><tr><th>Poziom</th><th>Domyślnie</th><th>Ustawione</th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section>
       <h2>Promocja w sklepie</h2>
       <p class="muted">Dodatkowe kryształy do każdego pakietu kryształów, dopóki trwa promocja (baner w sklepie gry).</p>
       <div class="row">
@@ -331,7 +349,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
 
@@ -412,6 +430,68 @@ $("calendar").onclick = async (e) => {
   const b = e.target.closest("button[data-boost]"); const p = e.target.closest("button[data-push]");
   if (b && confirm("Usunąć boost?")) { await check(sb.from("global_boosts").delete().eq("id", b.dataset.boost)); toast("Usunięto"); loadCalendar(); }
   if (p) { await check(sb.from("push_campaigns").update({ status: "cancelled" }).eq("id", p.dataset.push)); toast("Anulowano"); loadCalendar(); }
+};
+
+// ---------- Tuning: free speed-ups and build times ----------
+let tunDefaults = null, tuning = {};
+function fmtDur(sec) {
+  sec = Math.round(sec); if (!sec) return "0s";
+  const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60), s2 = sec % 60;
+  return [d && d + "d", h && h + "h", m && m + "m", s2 && s2 + "s"].filter(Boolean).join(" ");
+}
+function parseDur(text) {
+  text = String(text || "").trim().toLowerCase(); if (!text) return null;
+  if (/^\d+$/.test(text)) return parseInt(text, 10);
+  let total = 0, ok = false;
+  for (const [, n, u] of text.matchAll(/(\d+(?:[.,]\d+)?)\s*(d|h|m|s)/g)) { ok = true; total += parseFloat(n.replace(",", ".")) * ({ d: 86400, h: 3600, m: 60, s: 1 })[u]; }
+  return ok ? Math.round(total) : NaN;
+}
+async function loadTuning() {
+  if (!tunDefaults) tunDefaults = await (await fetch("build_times.json?v=" + Date.now())).json();
+  const rows = await check(sb.from("live_config").select("value").eq("key", "tuning"));
+  tuning = rows[0]?.value || {};
+  const val = (k) => tuning[k] ?? "";
+  $("tunFreeBuild").value = val("free_seconds_build"); $("tunFreeResearch").value = val("free_seconds_research");
+  $("tunFreeOther").value = val("free_seconds_other"); $("tunFreeOther").placeholder = String(tunDefaults.free_seconds_other_default);
+  $("tunVip").value = val("vip_seconds_per_level"); $("tunPercent").value = val("build_time_percent");
+  const current = $("tunBuilding").value;
+  $("tunBuilding").innerHTML = tunDefaults.buildings.map(b => `<option value="${esc(b.id)}">${esc(b.name)}${tuning.build_times?.[b.id] ? " •" : ""}</option>`).join("");
+  if (current) $("tunBuilding").value = current;
+  showTunLevels();
+}
+function showTunLevels() {
+  const b = tunDefaults.buildings.find(x => x.id === $("tunBuilding").value) || tunDefaults.buildings[0];
+  const over = tuning.build_times?.[b.id] || {};
+  $("tunLevels").querySelector("tbody").innerHTML = b.seconds.map((sec, i) => {
+    const lvl = i + 1, set = over[String(lvl)];
+    return `<tr><td>${lvl}</td><td class="muted">${fmtDur(sec)}</td><td><input data-lvl="${lvl}" value="${set != null ? fmtDur(set) : ""}" placeholder="${fmtDur(sec)}" style="max-width:160px"></td></tr>`;
+  }).join("");
+}
+function collectTunLevels() {
+  const id = $("tunBuilding").value, map = {};
+  for (const input of $("tunLevels").querySelectorAll("input[data-lvl]")) {
+    const v = parseDur(input.value);
+    if (Number.isNaN(v)) throw new Error(`Poziom ${input.dataset.lvl}: nie rozumiem „${input.value}”`);
+    if (v != null) map[input.dataset.lvl] = v;
+  }
+  const times = { ...(tuning.build_times || {}) };
+  if (Object.keys(map).length) times[id] = map; else delete times[id];
+  return times;
+}
+$("tunBuilding").onchange = () => {
+  try { tuning.build_times = collectTunLevels(); } catch (e) { return toast(e.message, true); }
+  showTunLevels();
+};
+$("tunReload").onclick = () => loadTuning().catch(() => {});
+$("tunResetBuilding").onclick = () => { for (const i of $("tunLevels").querySelectorAll("input[data-lvl]")) i.value = ""; };
+$("tunSave").onclick = async () => {
+  let times; try { times = collectTunLevels(); } catch (e) { return toast(e.message, true); }
+  const num = (id) => $(id).value === "" ? undefined : Math.max(0, parseInt($(id).value, 10));
+  const value = { free_seconds_build: num("tunFreeBuild"), free_seconds_research: num("tunFreeResearch"), free_seconds_other: num("tunFreeOther"),
+    vip_seconds_per_level: num("tunVip"), build_time_percent: num("tunPercent"), build_times: Object.keys(times).length ? times : undefined };
+  Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
+  await check(sb.rpc("admin_set_config", { p_key: "tuning", p_value: value }));
+  toast("Zapisano — gracze dostaną zmiany przy synchronizacji"); loadTuning(); loadConfig();
 };
 
 // ---------- Shop promo ----------
