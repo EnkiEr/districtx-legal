@@ -155,6 +155,12 @@
       <div class="scroll" style="max-height:420px"><table id="tunLevels"><thead><tr><th>Poziom</th><th>Domyślnie</th><th>Ustawione</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Progi VIP</h2><button class="ghost" style="flex:0 0 auto" id="vipReload">Odśwież</button></div>
+      <p class="muted">Łączna kwota zakupów gracza (cena referencyjna w USD) potrzebna na każdy poziom. VIP 1 = pierwszy zakup. Do 20 poziomów; puste wiersze na końcu = mniej poziomów. Po zapisie poziomy wszystkich graczy są przeliczane od razu.</p>
+      <div class="scroll" style="max-height:420px"><table id="vipTable"><thead><tr><th>Poziom</th><th>Od kwoty (USD)</th><th>Gracze</th></tr></thead><tbody></tbody></table></div>
+      <div class="row" style="margin-top:8px"><div style="flex:0 0 auto"><button id="vipSave">Zapisz progi VIP</button></div><div style="flex:0 0 auto"><button class="ghost" id="vipDefaults">Wstaw domyślne</button></div></div>
+    </section>
+    <section>
       <h2>Promocja w sklepie</h2>
       <p class="muted">Dodatkowe kryształy do każdego pakietu kryształów, dopóki trwa promocja (baner w sklepie gry).</p>
       <div class="row">
@@ -349,7 +355,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
 
@@ -492,6 +498,37 @@ $("tunSave").onclick = async () => {
   Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
   await check(sb.rpc("admin_set_config", { p_key: "tuning", p_value: value }));
   toast("Zapisano — gracze dostaną zmiany przy synchronizacji"); loadTuning(); loadConfig();
+};
+
+// ---------- VIP thresholds ----------
+const VIP_DEFAULTS = [1, 1000, 2500, 5000, 10000, 20000, 40000, 70000, 100000, 200000, 300000, 400000, 500000, 650000, 800000, 1000000, 1250000, 1500000, 2000000, 2500000];
+function showVip(thresholds, counts) {
+  $("vipTable").querySelector("tbody").innerHTML = Array.from({ length: 20 }, (_, i) => {
+    const cents = thresholds[i];
+    const usd = cents == null ? "" : (cents / 100).toFixed(cents % 100 ? 2 : 0);
+    return `<tr><td>VIP ${i + 1}</td><td><input data-vip="${i}" type="number" min="0.01" step="0.01" value="${usd}" style="max-width:140px"></td><td class="muted">${counts?.[i + 1] ?? ""}</td></tr>`;
+  }).join("");
+}
+async function loadVip() {
+  const thresholds = await check(sb.rpc("vip_thresholds"));
+  const rows = await check(sb.from("profiles").select("vip_level").gt("vip_level", 0).limit(5000));
+  const counts = {}; for (const r of rows) counts[r.vip_level] = (counts[r.vip_level] || 0) + 1;
+  showVip(thresholds || VIP_DEFAULTS, counts);
+}
+$("vipReload").onclick = () => loadVip().catch(() => {});
+$("vipDefaults").onclick = () => showVip(VIP_DEFAULTS, null);
+$("vipSave").onclick = async () => {
+  const values = [];
+  for (const input of $("vipTable").querySelectorAll("input[data-vip]")) {
+    if (input.value.trim() === "") break;
+    const cents = Math.round(parseFloat(input.value.replace(",", ".")) * 100);
+    if (!(cents >= 1)) return toast(`VIP ${+input.dataset.vip + 1}: niepoprawna kwota`, true);
+    if (values.length && cents <= values[values.length - 1]) return toast(`VIP ${+input.dataset.vip + 1}: próg musi być wyższy niż poprzedni`, true);
+    values.push(cents);
+  }
+  if (!values.length) return toast("Wpisz przynajmniej próg VIP 1", true);
+  const changed = await check(sb.rpc("admin_set_vip_thresholds", { p_thresholds: values }));
+  toast(`Zapisano ${values.length} poziomów VIP · przeliczono ${changed} graczy`); loadVip(); loadStats();
 };
 
 // ---------- Shop promo ----------
