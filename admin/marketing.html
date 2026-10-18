@@ -53,6 +53,18 @@
   .lib .it.sel { border-color:var(--accent); }
   .lib img, .lib video { width:100%; aspect-ratio:9/16; object-fit:cover; display:block; background:#000; }
   .lib span { position:absolute; left:4px; bottom:4px; font-size:11px; background:#000a; padding:1px 5px; border-radius:5px; }
+
+  /* iPhone: never wider than the screen; wide tables scroll inside their own box */
+  html, body { max-width:100%; overflow-x:hidden; }
+  main, #app { grid-template-columns:minmax(0, 1fr); }
+  main > *, #app > *, section, .card, .card2, .tab { min-width:0; max-width:100%; }
+  .row > * { min-width:0; }
+  .scroll { max-width:100%; -webkit-overflow-scrolling:touch; }
+  td, th, p, li, summary { overflow-wrap:anywhere; }
+  header { flex-wrap:wrap; }
+  header #who { font-size:12px; overflow-wrap:anywhere; }
+  img, video, canvas, svg { max-width:100%; }
+  @media (max-width:600px) { main { padding:10px; gap:12px; } section { padding:12px; } .row > * { flex-basis:100%; } .row > [style*="flex:0 0 auto"] { flex-basis:auto; } }
 </style>
 </head>
 <body>

@@ -46,6 +46,18 @@
   .card2 { background:#0e151d; border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:10px; }
   .live { color:var(--danger); font-weight:700; }
   input[type=checkbox] { width:auto; }
+
+  /* iPhone: never wider than the screen; wide tables scroll inside their own box */
+  html, body { max-width:100%; overflow-x:hidden; }
+  main, #app { grid-template-columns:minmax(0, 1fr); }
+  main > *, #app > *, section, .card, .card2, .tab { min-width:0; max-width:100%; }
+  .row > * { min-width:0; }
+  .scroll { max-width:100%; -webkit-overflow-scrolling:touch; }
+  td, th, p, li, summary { overflow-wrap:anywhere; }
+  header { flex-wrap:wrap; }
+  header #who { font-size:12px; overflow-wrap:anywhere; }
+  img, video, canvas, svg { max-width:100%; }
+  @media (max-width:600px) { main { padding:10px; gap:12px; } section { padding:12px; } .row > * { flex-basis:100%; } .row > [style*="flex:0 0 auto"] { flex-basis:auto; } }
 </style>
 </head>
 <body>
