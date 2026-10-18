@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DX Admin">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>DistrictX Marketing</title>
+<style>
+  :root { --bg:#0b0f14; --panel:#121a23; --fg:#e8eef5; --muted:#8fa2b6; --accent:#3fd0ff; --amber:#ffb547; --danger:#ff5d6c; --ok:#4ade80; --line:#1f2a36; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding-bottom:env(safe-area-inset-bottom); }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:3; }
+  header h1 { font-size:18px; margin:0; } header h1 span { color:var(--accent); }
+  header a { color:var(--accent); text-decoration:none; font-size:14px; }
+  nav { display:flex; gap:6px; overflow-x:auto; padding:10px 16px; border-bottom:1px solid var(--line); position:sticky; top:calc(49px + env(safe-area-inset-top)); background:var(--bg); z-index:2; scrollbar-width:none; }
+  nav button { flex:0 0 auto; background:#1b2733; color:var(--fg); border:1px solid var(--line); border-radius:99px; padding:6px 12px; font:inherit; font-size:14px; }
+  nav button.on { background:var(--accent); color:#001018; border-color:var(--accent); }
+  nav b { background:var(--danger); color:#fff; border-radius:99px; padding:0 6px; font-size:12px; margin-left:4px; }
+  main { max-width:900px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  h2 { font-size:16px; margin:0 0 12px; } h3 { font-size:15px; margin:14px 0 6px; }
+  label { display:block; color:var(--muted); font-size:13px; margin:8px 0 4px; }
+  input, select, textarea { width:100%; background:#0e151d; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:16px; }
+  textarea { min-height:110px; }
+  input[type=checkbox] { width:auto; }
+  button { background:var(--accent); color:#001018; border:0; border-radius:8px; padding:9px 14px; font:inherit; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button.warn { background:var(--danger); color:#fff; }
+  button.okb { background:var(--ok); color:#03140a; }
+  button:disabled { opacity:.5; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:end; } .row > * { flex:1 1 140px; }
+  .muted { color:var(--muted); } .ok { color:var(--ok); } .err { color:var(--danger); } .amb { color:var(--amber); }
+  .card { background:#0e151d; border:1px solid var(--line); border-radius:12px; padding:12px; margin-top:12px; }
+  .media { display:flex; gap:8px; overflow-x:auto; margin:8px 0; }
+  .media img, .media video { height:220px; border-radius:10px; background:#000; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0; }
+  .chip { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:99px; background:#1b2733; font-size:13px; border:1px solid var(--line); }
+  .chip.ok { border-color:var(--ok); } .chip.err { border-color:var(--danger); } .chip.man { border-color:var(--amber); }
+  .stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; }
+  .stat { background:#0e151d; border:1px solid var(--line); border-radius:10px; padding:10px; } .stat b { display:block; font-size:22px; } .stat small { color:var(--muted); }
+  .hidden { display:none !important; }
+  #toast { position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); background:#1b2733; border:1px solid var(--line); padding:10px 16px; border-radius:10px; display:none; z-index:5; max-width:90vw; }
+  ol.steps li { margin:4px 0; } code { background:#1b2733; padding:1px 5px; border-radius:5px; font-size:13px; }
+  .lib { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
+  .lib .it { position:relative; cursor:pointer; border:2px solid transparent; border-radius:10px; overflow:hidden; }
+  .lib .it.sel { border-color:var(--accent); }
+  .lib img, .lib video { width:100%; aspect-ratio:9/16; object-fit:cover; display:block; background:#000; }
+  .lib span { position:absolute; left:4px; bottom:4px; font-size:11px; background:#000a; padding:1px 5px; border-radius:5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>District<span>X</span> · Marketing</h1>
+  <a href="index.html">Panel gry →</a>
+</header>
+<nav id="tabs">
+  <button data-tab="today" class="on">Dziś</button>
+  <button data-tab="posts">Posty <b id="nPosts" class="hidden"></b></button>
+  <button data-tab="promos">Promocje <b id="nPromos" class="hidden"></b></button>
+  <button data-tab="reports">Opinie graczy <b id="nReports" class="hidden"></b></button>
+  <button data-tab="new">Nowy post</button>
+  <button data-tab="channels">Kanały</button>
+  <button data-tab="settings">Ustawienia</button>
+</nav>
+<main>
+  <section id="login" class="hidden">
+    <h2>Zaloguj się</h2>
+    <p class="muted">Zaloguj się w panelu gry (z kodem 2FA), a potem wróć tutaj.</p>
+    <a href="index.html"><button>Przejdź do logowania</button></a>
+  </section>
+
+  <div id="tab-today" class="tab">
+    <section>
+      <h2>Do zrobienia</h2>
+      <div class="stats" id="todayStats"></div>
+      <p class="hint muted" id="todayHint"></p>
+    </section>
+    <section style="margin-top:16px">
+      <h2>Najbliższe publikacje</h2>
+      <div id="todayNext" class="muted">—</div>
+    </section>
+  </div>
+
+  <div id="tab-posts" class="tab hidden">
+    <section>
+      <div class="row" style="align-items:center">
+        <div><label for="postFilter">Pokaż</label>
+          <select id="postFilter">
+            <option value="draft">Do zatwierdzenia</option>
+            <option value="approved">Zaplanowane</option>
+            <option value="manual">Do wrzucenia ręcznie</option>
+            <option value="done">Opublikowane</option>
+            <option value="problem">Błędy / niepołączone</option>
+            <option value="rejected">Odrzucone</option>
+          </select></div>
+        <div style="flex:0 0 auto"><button class="okb" id="approveAll">Zatwierdź wszystkie szkice</button></div>
+      </div>
+      <div id="postList"></div>
+    </section>
+  </div>
+
+  <div id="tab-promos" class="tab hidden">
+    <section>
+      <h2>Propozycje promocji</h2>
+      <p class="muted">Agent opinii proponuje promocję (dodatkowe kryształy do pakietów). Po zatwierdzeniu promocja sama się włącza i wyłącza. W grze pojawia się baner i powiadomienie, a agent marketingu przygotowuje posty z zapowiedzią.</p>
+      <div id="promoActive"></div>
+      <div id="promoList"></div>
+    </section>
+    <section style="margin-top:16px">
+      <h2>Nowa promocja (ręcznie)</h2>
+      <div class="row">
+        <div><label for="npPercent">Bonus kryształów %</label><input id="npPercent" type="number" min="1" max="300" value="20"></div>
+        <div><label for="npStart">Start</label><input id="npStart" type="datetime-local"></div>
+        <div><label for="npEnd">Koniec</label><input id="npEnd" type="datetime-local"></div>
+      </div>
+      <div class="row">
+        <div><label for="npTitlePl">Tytuł PL</label><input id="npTitlePl" placeholder="Weekend z bonusem"></div>
+        <div><label for="npTitleEn">Tytuł EN</label><input id="npTitleEn" placeholder="Bonus weekend"></div>
+      </div>
+      <label><input type="checkbox" id="npPush" checked> Wyślij powiadomienie push na start</label>
+      <div class="row" style="margin-top:10px"><div style="flex:0 0 auto"><button id="npSave">Zaplanuj promocję</button></div></div>
+    </section>
+  </div>
+
+  <div id="tab-reports" class="tab hidden">
+    <section>
+      <h2>Co mówią gracze</h2>
+      <p class="muted">Codzienne podsumowanie od agenta opinii: błędy, pomysły, pochwały i skargi z opinii w grze, zgłoszeń z czatu i (po premierze) recenzji w App Store.</p>
+      <div id="reportList"></div>
+    </section>
+  </div>
+
+  <div id="tab-new" class="tab hidden">
+    <section>
+      <h2>Nowy post</h2>
+      <label for="nBody">Treść</label><textarea id="nBody" placeholder="Co słychać w DistrictX…"></textarea>
+      <label for="nTags">Hashtagi</label><input id="nTags" value="#DistrictX #mobilegame #strategy #iosgames">
+      <div class="row">
+        <div><label for="nLang">Język</label><select id="nLang"><option>pl</option><option>en</option><option>ko</option><option>zh-Hans</option><option>zh-Hant</option><option>ar</option><option>he</option></select></div>
+        <div><label for="nWhen">Kiedy</label><input id="nWhen" type="datetime-local"></div>
+      </div>
+      <label>Kanały</label><div class="chips" id="nChannels"></div>
+      <label>Zdjęcie lub film (dotknij, aby wybrać)</label>
+      <div class="lib" id="nLib"></div>
+      <div class="row" style="margin-top:12px">
+        <div style="flex:0 0 auto"><button id="nSave">Zapisz jako zatwierdzony</button></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="nDraft">Zapisz jako szkic</button></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="tab-channels" class="tab hidden">
+    <section>
+      <h2>Kanały</h2>
+      <div id="chStatus" class="chips"></div>
+      <p class="muted">Klucze (tokeny) wpisujesz sam w Supabase: <a style="color:var(--accent)" target="_blank" href="https://supabase.com/dashboard/project/psawewkmzwnzxbaygxrq/settings/functions">Edge Functions → Secrets</a>. Panel nigdy ich nie wyświetla. Po dodaniu kanał zmieni się tu na zielony.</p>
+      <div id="chGuide"></div>
+    </section>
+  </div>
+
+  <div id="tab-settings" class="tab hidden">
+    <section>
+      <h2>Autopilot</h2>
+      <label><input type="checkbox" id="sAuto"> Publikuj posty agenta bez mojej akceptacji</label>
+      <p class="muted">Wyłączone: każdy post czeka tutaj na „Zatwierdź”. Promocje zawsze wymagają Twojej akceptacji.</p>
+      <div class="row">
+        <div><label for="sPerDay">Postów dziennie</label><input id="sPerDay" type="number" min="0" max="6"></div>
+        <div><label for="sHour">Godzina publikacji (PL)</label><input id="sHour" type="number" min="0" max="23" placeholder="18"></div>
+      </div>
+      <label>Języki postów</label><div class="chips" id="sLangs"></div>
+      <label>Kanały automatyczne</label><div class="chips" id="sAutoCh"></div>
+      <label>Kanały ręczne (agent przygotuje plik i opis)</label><div class="chips" id="sManCh"></div>
+      <label for="sStore">Link do gry</label><input id="sStore">
+      <div class="row" style="margin-top:12px"><div style="flex:0 0 auto"><button id="sSave">Zapisz ustawienia</button></div></div>
+    </section>
+  </div>
+</main>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://psawewkmzwnzxbaygxrq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_5QGx9Jwr_noPTJIcU-_A5A_vpwgppsz";
+const FN = SUPABASE_URL + "/functions/v1/marketing-publish";
+const LIB_URL = "https://enkier.github.io/districtx-legal/marketing/index.json";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, flowType: "pkce" } });
+const $ = (id) => document.getElementById(id);
+const AUTO = ["instagram", "facebook", "threads", "discord", "telegram", "bluesky"];
+const MANUAL = ["tiktok", "youtube", "x", "reddit"];
+const NAMES = { instagram:"Instagram", facebook:"Facebook", threads:"Threads", discord:"Discord", telegram:"Telegram", bluesky:"Bluesky", tiktok:"TikTok", youtube:"YouTube Shorts", x:"X", reddit:"Reddit" };
+const LANGS = ["pl","en","ko","zh-Hans","zh-Hant","ar","he"];
+let settings = {}, library = [], connected = {}, posts = [];
+
+function toast(t, bad) { const e = $("toast"); e.textContent = t; e.className = bad ? "err" : "ok"; e.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => e.style.display = "none", 3500); }
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function when(d) { return d ? new Date(d).toLocaleString("pl-PL", { weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }) : "—"; }
+function localInput(d) { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); }
+async function check(p) { const { data, error } = await p; if (error) { toast(error.message, true); throw error; } return data; }
+
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("hidden", t.id !== "tab-" + b.dataset.tab));
+  try { localStorage.setItem("mkTab", b.dataset.tab); } catch {}
+  window.scrollTo(0, 0);
+});
+
+async function start() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $("login").classList.remove("hidden"); document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden")); return; }
+  const { data: isAdmin } = await sb.rpc("is_admin");
+  if (!isAdmin) { $("login").classList.remove("hidden"); document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden")); return; }
+  try { const t = localStorage.getItem("mkTab"); if (t) document.querySelector(`#tabs button[data-tab="${t}"]`)?.click(); } catch {}
+  await Promise.all([loadSettings(), loadLibrary(), loadConnected()]);
+  await Promise.all([loadPosts(), loadPromos(), loadReports()]);
+  renderToday(); renderNew(); renderChannels();
+}
+
+// ---------- settings ----------
+async function loadSettings() {
+  const rows = await check(sb.from("live_config").select("value").eq("key", "marketing"));
+  settings = rows[0]?.value || {};
+  $("sAuto").checked = !!settings.auto_approve_posts;
+  $("sPerDay").value = settings.posts_per_day ?? 1;
+  $("sHour").value = settings.post_hour ?? 18;
+  $("sStore").value = settings.app_store_url || "";
+  const chk = (id, list, on) => $(id).innerHTML = list.map(x => `<label class="chip"><input type="checkbox" value="${x}" ${on.includes(x) ? "checked" : ""}> ${NAMES[x] || x}</label>`).join("");
+  chk("sLangs", LANGS, settings.languages || ["pl","en"]);
+  chk("sAutoCh", AUTO, settings.auto_channels || AUTO);
+  chk("sManCh", MANUAL, settings.manual_channels || MANUAL);
+}
+const picked = (id) => [...$(id).querySelectorAll("input:checked")].map(i => i.value);
+$("sSave").onclick = async () => {
+  const value = { ...settings, auto_approve_posts: $("sAuto").checked, posts_per_day: parseInt($("sPerDay").value || "1", 10),
+    post_hour: parseInt($("sHour").value || "18", 10), languages: picked("sLangs"), auto_channels: picked("sAutoCh"), manual_channels: picked("sManCh"), app_store_url: $("sStore").value.trim() };
+  await check(sb.rpc("admin_set_config", { p_key: "marketing", p_value: value }));
+  settings = value; toast("Zapisano");
+};
+
+// ---------- library ----------
+async function loadLibrary() {
+  try { library = (await (await fetch(LIB_URL + "?v=" + Date.now())).json()).items || []; } catch { library = []; }
+}
+
+// ---------- channels ----------
+async function loadConnected() {
+  try { connected = (await (await fetch(FN)).json()).connected || {}; } catch { connected = {}; }
+}
+const GUIDE = {
+  discord: ["Załóż serwer Discord „DistrictX” (aplikacja Discord → + → Utwórz serwer).", "Kanał #ogłoszenia → Edytuj kanał → Integracje → Webhooki → Nowy webhook → Kopiuj URL.", "W Supabase Secrets dodaj <code>DISCORD_WEBHOOK_URL</code> = skopiowany adres."],
+  telegram: ["W Telegramie napisz do <b>@BotFather</b> → /newbot → nazwa „DistrictX” → dostaniesz token.", "Utwórz kanał „DistrictX” (publiczny), dodaj bota jako administratora z prawem publikowania.", "Dodaj <code>TELEGRAM_BOT_TOKEN</code> = token i <code>TELEGRAM_CHAT_ID</code> = @nazwa_kanału."],
+  facebook: ["Utwórz stronę na Facebooku „DistrictX” (Strony → Utwórz).", "Na developers.facebook.com: Moje aplikacje → Utwórz → typ „Biznes” → dodaj produkty Facebook Login i Instagram Graph API.", "Graph API Explorer: wybierz aplikację, uprawnienia <code>pages_manage_posts, pages_read_engagement, instagram_basic, instagram_content_publish</code> → Generate token → wybierz stronę.", "Zamień token na długoterminowy (Access Token Debugger → Extend) i pobierz token strony: <code>/me/accounts</code>.", "Dodaj <code>META_PAGE_ID</code> i <code>META_PAGE_TOKEN</code> (token strony nie wygasa)."],
+  instagram: ["Załóż konto Instagram @districtx… i przełącz na konto profesjonalne (Twórca/Firma).", "Połącz je ze stroną Facebook (Ustawienia strony → Połączone konta → Instagram).", "W Graph API Explorer: <code>/{META_PAGE_ID}?fields=instagram_business_account</code> → skopiuj id.", "Dodaj <code>IG_USER_ID</code> = to id (korzysta z <code>META_PAGE_TOKEN</code>)."],
+  threads: ["Konto Threads tworzysz z konta Instagram (aplikacja Threads).", "W tej samej aplikacji Meta dodaj produkt „Threads API” → uprawnienia <code>threads_basic, threads_content_publish</code>.", "Wygeneruj token użytkownika Threads (User Token Generator) i zamień na długoterminowy (60 dni — potem odświeżany automatycznie).", "Dodaj <code>THREADS_USER_ID</code> i <code>THREADS_TOKEN</code>."],
+  bluesky: ["Załóż konto na bsky.app (np. districtx.bsky.social).", "Ustawienia → Prywatność i bezpieczeństwo → Hasła aplikacji → Dodaj.", "Dodaj <code>BLUESKY_HANDLE</code> = districtx.bsky.social i <code>BLUESKY_APP_PASSWORD</code> = hasło aplikacji."],
+  tiktok: ["Załóż konto TikTok (najlepiej konto firmowe) „DistrictX”.", "Agent przygotuje film 9:16 z muzyką i opisem — w zakładce Posty → „Do wrzucenia ręcznie” pobierasz film, kopiujesz opis i wrzucasz w aplikacji TikTok, potem „Oznacz jako opublikowane”.", "Automatyczne publikowanie wymaga audytu aplikacji przez TikTok (tygodnie) — zrobimy to, gdy konto nabierze ruchu."],
+  youtube: ["Utwórz kanał YouTube „DistrictX” na swoim koncie Google.", "Filmy 9:16 do 60 s trafiają do Shorts — wrzucasz je jak przy TikToku (pobierz → wrzuć → oznacz).", "Automatyczne wrzucanie przez API wymaga weryfikacji aplikacji przez Google (inaczej filmy są prywatne)."],
+  x: ["Załóż konto X @DistrictXGame.", "API X jest płatne (od lutego 2026), więc posty wrzucasz ręcznie: kopiuj opis + obraz z zakładki „Do wrzucenia ręcznie”."],
+  reddit: ["Załóż konto Reddit i przez 1–2 tygodnie udzielaj się normalnie (nowe konta z samymi reklamami są banowane).", "Dobre miejsca: r/iosgaming, r/gamedev (Feedback Friday), r/IndieGaming, r/StrategyGames — zawsze czytaj zasady subreddita.", "Agent przygotuje tytuł i treść; publikujesz ręcznie."],
+};
+function renderChannels() {
+  $("chStatus").innerHTML = [...AUTO, ...MANUAL].map(c => AUTO.includes(c)
+    ? `<span class="chip ${connected[c] ? "ok" : "err"}">${connected[c] ? "●" : "○"} ${NAMES[c]}</span>`
+    : `<span class="chip man">✋ ${NAMES[c]}</span>`).join("");
+  $("chGuide").innerHTML = [...AUTO, ...MANUAL].map(c => `<details class="card"><summary><b>${NAMES[c]}</b> ${AUTO.includes(c) ? (connected[c] ? '<span class="ok">— połączony</span>' : '<span class="err">— niepołączony</span>') : '<span class="amb">— ręcznie</span>'}</summary><ol class="steps">${GUIDE[c].map(s => `<li>${s}</li>`).join("")}</ol></details>`).join("");
+}
+
+// ---------- posts ----------
+async function loadPosts() {
+  posts = await check(sb.from("marketing_posts").select("*").order("scheduled_at", { ascending: true }).limit(300));
+  const drafts = posts.filter(p => p.status === "draft").length;
+  $("nPosts").textContent = drafts; $("nPosts").classList.toggle("hidden", !drafts);
+  renderPosts();
+}
+const manualPending = (p) => p.channels.some(c => MANUAL.includes(c) && p.results?.[c]?.status !== "manual_done") && ["published", "partial", "publishing"].includes(p.status);
+function filterPosts(f) {
+  if (f === "draft") return posts.filter(p => p.status === "draft");
+  if (f === "approved") return posts.filter(p => p.status === "approved" || p.status === "publishing");
+  if (f === "manual") return posts.filter(manualPending);
+  if (f === "done") return posts.filter(p => p.status === "published" || p.status === "partial").reverse();
+  if (f === "problem") return posts.filter(p => p.status === "failed" || Object.values(p.results || {}).some(r => r.status === "error" || r.status === "not_connected")).reverse();
+  if (f === "rejected") return posts.filter(p => p.status === "rejected").reverse();
+  return posts;
+}
+function mediaHtml(p) {
+  return (p.media || []).map(m => m.type === "video"
+    ? `<video src="${esc(m.url)}" controls playsinline preload="metadata"></video>`
+    : `<img src="${esc(m.url)}" loading="lazy">`).join("");
+}
+function resultChip(c, r) {
+  const s = r?.status;
+  const cls = s === "ok" || s === "manual_done" ? "ok" : s === "error" || s === "not_connected" ? "err" : MANUAL.includes(c) ? "man" : "";
+  const label = { ok:"✓", manual_done:"✓", error:"błąd", not_connected:"niepołączony", processing:"…", manual:"ręcznie" }[s] || "";
+  const link = r?.url ? ` <a style="color:var(--accent)" target="_blank" href="${esc(r.url)}">↗</a>` : "";
+  return `<span class="chip ${cls}" title="${esc(r?.error || "")}">${NAMES[c] || c} ${label}${link}</span>`;
+}
+function renderPosts() {
+  const f = $("postFilter").value;
+  const list = filterPosts(f);
+  $("postList").innerHTML = list.length ? list.map(p => `
+    <div class="card" data-id="${p.id}">
+      <div class="row" style="align-items:center; justify-content:space-between">
+        <div class="muted" style="flex:1 1 auto">#${p.id} · ${p.lang.toUpperCase()} · ${esc(p.kind)} · ${p.created_by === "agent" ? "🤖 agent" : "✍️ ręcznie"}</div>
+        <div style="flex:0 0 auto" class="${p.status === "draft" ? "amb" : p.status === "failed" ? "err" : "muted"}">${esc(p.status)}</div>
+      </div>
+      <div class="media">${mediaHtml(p)}</div>
+      <textarea data-f="body">${esc(p.body)}</textarea>
+      <input data-f="hashtags" value="${esc(p.hashtags)}" style="margin-top:6px">
+      <div class="row">
+        <div><label>Kiedy</label><input data-f="when" type="datetime-local" value="${localInput(p.scheduled_at)}"></div>
+      </div>
+      <div class="chips">${p.channels.map(c => resultChip(c, p.results?.[c])).join("")}</div>
+      ${p.results && Object.values(p.results).some(r => r.error) ? `<p class="err" style="font-size:13px">${Object.entries(p.results).filter(([,r]) => r.error).map(([c,r]) => esc(NAMES[c] + ": " + r.error)).join("<br>")}</p>` : ""}
+      ${manualPending(p) ? `<div class="card"><b>Do wrzucenia ręcznie:</b> ${p.channels.filter(c => MANUAL.includes(c) && p.results?.[c]?.status !== "manual_done").map(c => NAMES[c]).join(", ")}
+        <div class="row" style="margin-top:8px">
+          <div style="flex:0 0 auto"><button class="ghost" data-act="copy">Kopiuj opis</button></div>
+          ${(p.media || []).map((m, i) => `<div style="flex:0 0 auto"><a href="${esc(m.url)}" download target="_blank"><button class="ghost">Pobierz ${m.type === "video" ? "film" : "obraz"}${p.media.length > 1 ? " " + (i + 1) : ""}</button></a></div>`).join("")}
+          <div style="flex:0 0 auto"><button class="okb" data-act="manualdone">Oznacz jako opublikowane</button></div>
+        </div></div>` : ""}
+      <div class="row" style="margin-top:10px">
+        ${p.status === "draft" || p.status === "rejected" ? `<div style="flex:0 0 auto"><button class="okb" data-act="approve">Zatwierdź</button></div>` : ""}
+        ${p.status === "draft" || p.status === "approved" ? `<div style="flex:0 0 auto"><button class="warn" data-act="reject">Odrzuć</button></div>` : ""}
+        <div style="flex:0 0 auto"><button class="ghost" data-act="save">Zapisz zmiany</button></div>
+        ${["approved", "partial", "failed"].includes(p.status) ? `<div style="flex:0 0 auto"><button data-act="now">Opublikuj teraz</button></div>` : ""}
+      </div>
+    </div>`).join("") : `<p class="muted">Pusto.</p>`;
+}
+$("postFilter").onchange = renderPosts;
+$("postList").onclick = async (e) => {
+  const btn = e.target.closest("button[data-act]"); if (!btn) return;
+  const card = btn.closest("[data-id]"); const id = parseInt(card.dataset.id, 10); const p = posts.find(x => x.id === id);
+  const act = btn.dataset.act; btn.disabled = true;
+  try {
+    if (act === "approve" || act === "reject") { await saveCard(card, p); await check(sb.rpc("admin_decide_posts", { p_ids: [id], p_approve: act === "approve" })); toast(act === "approve" ? "Zatwierdzono" : "Odrzucono"); }
+    if (act === "save") { await saveCard(card, p); toast("Zapisano"); }
+    if (act === "copy") { await navigator.clipboard.writeText([p.body, p.hashtags].filter(Boolean).join("\n\n")); toast("Skopiowano opis"); }
+    if (act === "manualdone") {
+      const results = { ...(p.results || {}) }; p.channels.filter(c => MANUAL.includes(c)).forEach(c => results[c] = { status: "manual_done", at: new Date().toISOString() });
+      await check(sb.from("marketing_posts").update({ results }).eq("id", id)); toast("Oznaczono");
+    }
+    if (act === "now") {
+      await saveCard(card, p);
+      const { data: { session } } = await sb.auth.getSession();
+      const r = await (await fetch(FN, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token }, body: JSON.stringify({ post_id: id }) })).json();
+      toast(r.error ? "Błąd: " + r.error : "Wysłano: " + (r.published?.[0]?.status || "—"), !!r.error);
+    }
+  } finally { btn.disabled = false; await loadPosts(); renderToday(); }
+};
+async function saveCard(card, p) {
+  const v = (f) => card.querySelector(`[data-f="${f}"]`).value;
+  await check(sb.from("marketing_posts").update({ body: v("body"), hashtags: v("hashtags"), scheduled_at: new Date(v("when")).toISOString() }).eq("id", p.id));
+}
+$("approveAll").onclick = async () => {
+  const ids = posts.filter(p => p.status === "draft").map(p => p.id); if (!ids.length) return toast("Brak szkiców");
+  const n = await check(sb.rpc("admin_decide_posts", { p_ids: ids, p_approve: true })); toast("Zatwierdzono: " + n); loadPosts().then(renderToday);
+};
+
+// ---------- promos ----------
+let promos = [];
+async function loadPromos() {
+  promos = await check(sb.from("promo_proposals").select("*").order("created_at", { ascending: false }).limit(50));
+  const pending = promos.filter(p => p.status === "proposed").length;
+  $("nPromos").textContent = pending; $("nPromos").classList.toggle("hidden", !pending);
+  const active = promos.filter(p => p.status === "active" || p.status === "approved");
+  $("promoActive").innerHTML = active.map(p => `<div class="card"><b class="${p.status === "active" ? "ok" : "amb"}">${p.status === "active" ? "TRWA" : "ZAPLANOWANA"}</b> · +${p.percent}% kryształów · ${when(p.starts_at)} → ${when(p.ends_at)} <div class="muted">${esc(p.title?.pl || p.title?.en || "")}</div></div>`).join("");
+  const list = promos.filter(p => p.status === "proposed");
+  $("promoList").innerHTML = list.length ? list.map(p => `
+    <div class="card" data-promo="${p.id}">
+      <h3 style="margin-top:0">+${p.percent}% kryształów · ${esc(p.title?.pl || p.title?.en || "Promocja")}</h3>
+      <p>${esc(p.rationale)}</p>
+      ${(p.evidence || []).length ? `<ul class="muted">${p.evidence.map(x => `<li>${esc(typeof x === "string" ? x : JSON.stringify(x))}</li>`).join("")}</ul>` : ""}
+      <div class="row">
+        <div><label>Bonus %</label><input data-f="percent" type="number" min="1" max="300" value="${p.percent}"></div>
+        <div><label>Start</label><input data-f="start" type="datetime-local" value="${localInput(p.starts_at)}"></div>
+        <div><label>Koniec</label><input data-f="end" type="datetime-local" value="${localInput(p.ends_at)}"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:0 0 auto"><button class="okb" data-act="yes">Zatwierdź promocję</button></div>
+        <div style="flex:0 0 auto"><button class="warn" data-act="no">Odrzuć</button></div>
+      </div>
+    </div>`).join("") : `<p class="muted">Brak nowych propozycji.</p>`;
+}
+$("promoList").onclick = async (e) => {
+  const btn = e.target.closest("button[data-act]"); if (!btn) return;
+  const card = btn.closest("[data-promo]"); const v = (f) => card.querySelector(`[data-f="${f}"]`).value;
+  await check(sb.rpc("admin_decide_promo", { p_id: parseInt(card.dataset.promo, 10), p_approve: btn.dataset.act === "yes",
+    p_percent: parseInt(v("percent"), 10), p_starts: new Date(v("start")).toISOString(), p_ends: new Date(v("end")).toISOString() }));
+  toast(btn.dataset.act === "yes" ? "Promocja zatwierdzona — włączy się sama" : "Odrzucono"); loadPromos().then(renderToday);
+};
+$("npSave").onclick = async () => {
+  const s = $("npStart").value, en = $("npEnd").value; if (!s || !en) return toast("Podaj start i koniec", true);
+  const pct = parseInt($("npPercent").value || "20", 10);
+  const title = { pl: $("npTitlePl").value.trim() || `+${pct}% kryształów`, en: $("npTitleEn").value.trim() || `+${pct}% crystals` };
+  const push = $("npPush").checked ? { title, body: { pl: `Tylko teraz: +${pct}% kryształów do każdego pakietu!`, en: `Now on: +${pct}% crystals on every pack!` } } : null;
+  const row = await check(sb.from("promo_proposals").insert({ created_by: "admin", percent: pct, starts_at: new Date(s).toISOString(), ends_at: new Date(en).toISOString(), title, push, rationale: "Dodane ręcznie w panelu." }).select("id").single());
+  await check(sb.rpc("admin_decide_promo", { p_id: row.id, p_approve: true }));
+  toast("Promocja zaplanowana"); loadPromos().then(renderToday);
+};
+
+// ---------- reports ----------
+let reports = [];
+async function loadReports() {
+  reports = await check(sb.from("agent_reports").select("*").order("created_at", { ascending: false }).limit(30));
+  const unseen = reports.filter(r => !r.seen).length;
+  $("nReports").textContent = unseen; $("nReports").classList.toggle("hidden", !unseen);
+  const icon = { bug:"🐞", idea:"💡", praise:"👍", complaint:"👎", question:"❓" };
+  $("reportList").innerHTML = reports.length ? reports.map(r => `
+    <div class="card" data-rep="${r.id}" style="${r.seen ? "opacity:.75" : ""}">
+      <div class="muted">${when(r.created_at)} · ${r.agent === "feedback" ? "agent opinii" : "agent marketingu"}</div>
+      <h3 style="margin-top:4px">${esc(r.title)}</h3>
+      <p>${esc(r.summary)}</p>
+      ${(r.items || []).length ? `<ul>${r.items.map(i => `<li>${icon[i.type] || "•"} ${esc(i.text)}${i.count > 1 ? ` <span class="muted">(${i.count}×)</span>` : ""}</li>`).join("")}</ul>` : ""}
+      ${r.seen ? "" : `<button class="ghost" data-act="seen">Przeczytane</button>`}
+    </div>`).join("") : `<p class="muted">Pierwszy raport pojawi się po najbliższym przebiegu agenta (codziennie rano).</p>`;
+}
+$("reportList").onclick = async (e) => {
+  const btn = e.target.closest("button[data-act=seen]"); if (!btn) return;
+  await check(sb.from("agent_reports").update({ seen: true }).eq("id", parseInt(btn.closest("[data-rep]").dataset.rep, 10))); loadReports().then(renderToday);
+};
+
+// ---------- today ----------
+function renderToday() {
+  const drafts = posts.filter(p => p.status === "draft").length;
+  const manual = posts.filter(manualPending).length;
+  const pending = promos.filter(p => p.status === "proposed").length;
+  const unseen = reports.filter(r => !r.seen).length;
+  const live = Object.values(connected).filter(Boolean).length;
+  const stat = (n, t, tab) => `<div class="stat" style="cursor:pointer" onclick="document.querySelector('#tabs button[data-tab=${tab}]').click()"><b class="${n ? "amb" : ""}">${n}</b><small>${t}</small></div>`;
+  $("todayStats").innerHTML = stat(drafts, "posty do zatwierdzenia", "posts") + stat(pending, "propozycje promocji", "promos") + stat(manual, "do wrzucenia ręcznie", "posts") + stat(unseen, "nowe raporty opinii", "reports") + stat(live + "/6", "kanały automatyczne", "channels");
+  $("todayHint").textContent = live ? "" : "Żaden kanał automatyczny nie jest jeszcze połączony — zajrzyj do zakładki Kanały.";
+  const next = posts.filter(p => p.status === "approved" && new Date(p.scheduled_at) > new Date()).slice(0, 5);
+  $("todayNext").innerHTML = next.length ? next.map(p => `<div class="card">${when(p.scheduled_at)} · ${p.lang.toUpperCase()} · ${p.channels.map(c => NAMES[c]).join(", ")}<div class="muted">${esc(p.body.slice(0, 120))}…</div></div>`).join("") : "Brak zaplanowanych postów.";
+}
+
+// ---------- new post ----------
+let selMedia = null;
+function renderNew() {
+  $("nWhen").value = localInput(Date.now() + 3600e3);
+  $("nChannels").innerHTML = [...(settings.auto_channels || AUTO), ...(settings.manual_channels || MANUAL)].map(c => `<label class="chip"><input type="checkbox" value="${c}" checked> ${NAMES[c]}</label>`).join("");
+  $("nLib").innerHTML = library.map((m, i) => `<div class="it" data-i="${i}">${m.type === "video" ? `<video src="${esc(m.url)}#t=1" muted playsinline preload="metadata"></video>` : `<img src="${esc(m.url)}" loading="lazy">`}<span>${m.type === "video" ? "🎬" : "🖼"} ${esc(m.lang)} · ${esc(m.theme)}</span></div>`).join("") || `<p class="muted">Biblioteka mediów jest pusta.</p>`;
+}
+$("nLib").onclick = (e) => { const it = e.target.closest(".it"); if (!it) return; $("nLib").querySelectorAll(".it").forEach(x => x.classList.toggle("sel", x === it && !x.classList.contains("sel"))); selMedia = it.classList.contains("sel") ? library[parseInt(it.dataset.i, 10)] : null; };
+async function saveNew(status) {
+  const body = $("nBody").value.trim(); if (!body) return toast("Wpisz treść", true);
+  await check(sb.from("marketing_posts").insert({ created_by: "admin", kind: "post", body, hashtags: $("nTags").value.trim(), lang: $("nLang").value,
+    channels: picked("nChannels"), media: selMedia ? [{ url: selMedia.url, type: selMedia.type }] : [], scheduled_at: new Date($("nWhen").value).toISOString(), status }));
+  toast(status === "approved" ? "Zaplanowano" : "Zapisano szkic"); $("nBody").value = ""; selMedia = null; renderNew(); loadPosts().then(renderToday);
+}
+$("nSave").onclick = () => saveNew("approved");
+$("nDraft").onclick = () => saveNew("draft");
+
+start();
+sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") location.reload(); });
+</script>
+</body>
+</html>
