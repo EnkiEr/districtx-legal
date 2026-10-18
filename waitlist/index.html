@@ -22,10 +22,10 @@
   :root { --bg:#07090d; --panel:#10161e; --fg:#eef3f8; --muted:#97a8ba; --cyan:#3fd0ff; --amber:#ffb547; --line:#1d2834; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  .lang { position:absolute; top:14px; right:16px; z-index:3; display:flex; gap:4px; }
+  .lang { position:absolute; top:14px; inset-inline-end:16px; flex-wrap:wrap; justify-content:flex-end; max-width:calc(100% - 32px); z-index:3; display:flex; gap:4px; }
   .lang button { width:42px; background:rgba(10,14,20,.7); color:var(--muted); border:1px solid var(--line); padding:4px 10px; border-radius:99px; font-weight:700; font-size:13px; }
   .lang button.on { color:#00121c; background:var(--cyan); border-color:var(--cyan); }
-  .hero { position:relative; min-height:92vh; display:grid; place-items:center; padding:56px 16px 32px; overflow:hidden; }
+  .hero { position:relative; min-height:92vh; display:grid; place-items:center; padding:68px 16px 32px; overflow:hidden; }
   .hero::before { content:""; position:absolute; inset:0; background:url(media/bg.jpg) center/cover; filter:brightness(.35) saturate(1.2); transform:scale(1.08); animation:drift 18s ease-in-out infinite alternate; }
   @keyframes drift { to { transform:scale(1.18) translateY(-2%); } }
   .hero-inner { position:relative; max-width:1040px; width:100%; display:grid; gap:28px; grid-template-columns:1fr; align-items:center; }
@@ -66,7 +66,7 @@
 </style>
 </head>
 <body>
-<div class="lang"><button data-l="en">EN</button><button data-l="pl">PL</button></div>
+<div class="lang"><button data-l="en">EN</button><button data-l="pl">PL</button><button data-l="zh-Hans" title="简体中文">简</button><button data-l="zh-Hant" title="繁體中文">繁</button><button data-l="ko" title="한국어">한</button><button data-l="ar" title="العربية">ع</button><button data-l="he" title="עברית">עב</button></div>
 <header class="hero">
   <div class="hero-inner">
     <div>
@@ -146,22 +146,42 @@ const T = {
     h2b: "Zbierz ekipę", h2c: "Poleć znajomym", copy: "Kopiuj link", copied: "Skopiowano!",
     text: "DistrictX: Rise of the Boss — zostań Bossem i podbij miasto ze mną. Za darmo na iPhone:",
     privacy: "Polityka prywatności", help: "Pomoc"
-  }
+  },
+  "zh-Hans": {"lead": "一夜之间，城市陷入黑暗，帮派将其瓜分成一个个街区。成为老大，组建传奇团队，发展你的街区，与联盟一起征服整座城市。一款免费的 iPhone 策略游戏。", "betaT": "加入测试", "betaS": "立即在 iPhone 上畅玩（TestFlight）", "launchT": "上线时通知我", "launchS": "在你所在地区的 App Store 上线时发送一封邮件", "email": "你的邮箱", "country": "你的国家/地区", "join": "立即报名", "discord": "加入我们的 Discord", "note": "测试名额有限。审核通过后我们会通过邮件发送邀请。绝不发送垃圾邮件。", "ok": "你已加入名单！游戏上线时我们会通知你。", "okBeta": "谢谢！审核通过后，Apple 会通过邮件向你发送 TestFlight 邀请。", "bad": "报名失败。请检查邮箱地址后重试。", "sound": "🔊 开启声音", "h2a": "你的街道，你的规则。", "c1t": "建设你的街区", "c1": "发电站、铸造厂、实验室、机械工坊。每座建筑都让你的帝国更强大。", "c2t": "战术战斗", "c2": "快节奏的六边形战斗。包抄敌人，释放英雄技能，派出你的机甲。", "c3t": "征服城市", "c3": "与真实玩家同在的动态地图。最多 99 人的联盟、共享研究、世界首领以及首都争夺战。", "h2b": "组建你的团队", "h2c": "告诉你的朋友", "copy": "复制链接", "copied": "已复制！", "text": "DistrictX: Rise of the Boss —— 成为老大，和我一起征服这座城市。iPhone 免费下载：", "privacy": "隐私政策", "help": "帮助"},
+  "zh-Hant": {"lead": "一夜之間，城市陷入黑暗，幫派將它瓜分成一個個街區。成為老大，組建傳奇團隊，發展你的街區，與聯盟一起征服整座城市。一款免費的 iPhone 策略遊戲。", "betaT": "加入測試", "betaS": "立即在 iPhone 上暢玩（TestFlight）", "launchT": "上線時通知我", "launchS": "在你所在地區的 App Store 上架時寄送一封郵件", "email": "你的電子郵件", "country": "你的國家/地區", "join": "立即報名", "discord": "加入我們的 Discord", "note": "測試名額有限。審核通過後我們會以電子郵件寄送邀請。絕不寄送垃圾郵件。", "ok": "你已加入名單！遊戲上線時我們會通知你。", "okBeta": "謝謝！審核通過後，Apple 會以電子郵件寄送 TestFlight 邀請給你。", "bad": "報名失敗。請檢查電子郵件地址後再試一次。", "sound": "🔊 開啟聲音", "h2a": "你的街道，你的規則。", "c1t": "建設你的街區", "c1": "發電廠、鑄造廠、實驗室、機械工坊。每棟建築都讓你的帝國更強大。", "c2t": "戰術戰鬥", "c2": "快節奏的六角格戰鬥。包抄敵人，施放英雄技能，派出你的機甲。", "c3t": "征服城市", "c3": "與真實玩家同在的動態地圖。最多 99 人的聯盟、共享研究、世界首領以及首都爭奪戰。", "h2b": "組建你的團隊", "h2c": "告訴你的朋友", "copy": "複製連結", "copied": "已複製！", "text": "DistrictX: Rise of the Boss —— 成為老大，和我一起征服這座城市。iPhone 免費下載：", "privacy": "隱私權政策", "help": "說明"},
+  "ko": {"lead": "어느 날 밤 도시의 불이 꺼지고, 갱단들이 도시를 구역별로 나눠 차지했습니다. 보스가 되어 전설적인 크루를 모으고, 구역을 키우고, 동맹과 함께 도시를 정복하세요. iPhone용 무료 전략 게임입니다.", "betaT": "베타 참여", "betaS": "지금 iPhone에서 플레이 (TestFlight)", "launchT": "출시 알림 받기", "launchS": "내 지역 App Store 출시 시 이메일 한 통", "email": "이메일 주소", "country": "국가/지역", "join": "신청하기", "discord": "Discord 참여하기", "note": "베타 자리는 한정되어 있습니다. 승인되면 이메일로 초대장을 보내드립니다. 스팸은 보내지 않습니다.", "ok": "명단에 등록되었습니다! 출시되면 알려드릴게요.", "okBeta": "감사합니다! 승인되면 Apple이 TestFlight 초대 이메일을 보내드립니다.", "bad": "신청하지 못했습니다. 이메일 주소를 확인하고 다시 시도해 주세요.", "sound": "🔊 소리 켜기", "h2a": "너의 거리, 너의 규칙.", "c1t": "구역을 건설하라", "c1": "발전소, 주조소, 연구소, 기계 공방. 모든 건물이 당신의 제국을 강하게 만듭니다.", "c2t": "전술적으로 싸워라", "c2": "빠른 육각형 전투. 측면을 노리고, 영웅 스킬을 쓰고, 기계 병기를 투입하세요.", "c3t": "도시를 정복하라", "c3": "실제 플레이어와 함께하는 살아있는 지도. 최대 99명의 동맹, 공동 연구, 월드 보스, 수도 쟁탈전.", "h2b": "크루를 모아라", "h2c": "친구에게 알리기", "copy": "링크 복사", "copied": "복사됨!", "text": "DistrictX: Rise of the Boss — 보스가 되어 나와 함께 도시를 정복하자. iPhone에서 무료:", "privacy": "개인정보 처리방침", "help": "도움말"},
+  "ar": {"lead": "في إحدى الليالي انطفأت أنوار المدينة وقسّمتها العصابات إلى أحياء. كن الزعيم، واجمع طاقمًا أسطوريًا، وطوّر حيّك، واستولِ على المدينة مع تحالفك. لعبة استراتيجية مجانية على iPhone.", "betaT": "انضم إلى النسخة التجريبية", "betaS": "العب الآن على iPhone ‏(TestFlight)", "launchT": "أبلغني عند الإطلاق", "launchS": "رسالة واحدة عند توفّرها في App Store في بلدك", "email": "بريدك الإلكتروني", "country": "بلدك", "join": "سجّلني", "discord": "انضم إلى Discord", "note": "أماكن النسخة التجريبية محدودة. سنرسل لك الدعوة بالبريد بعد الموافقة. بلا رسائل مزعجة.", "ok": "أنت على القائمة! سنخبرك عند الإطلاق.", "okBeta": "شكرًا! بعد الموافقة سترسل لك Apple دعوة TestFlight بالبريد الإلكتروني.", "bad": "تعذّر التسجيل. تحقّق من العنوان وحاول مجددًا.", "sound": "🔊 تشغيل الصوت", "h2a": "شارعك. قواعدك.", "c1t": "ابنِ حيّك", "c1": "محطة طاقة، مسبك، مختبر، ورشة آلات. كل مبنى يقوّي إمبراطوريتك.", "c2t": "قاتل بذكاء", "c2": "معارك سريعة على خلايا سداسية. التفّ على العدو، واستخدم مهارات الأبطال، وأطلق آلاتك.", "c3t": "استولِ على المدينة", "c3": "خريطة حيّة مع لاعبين حقيقيين. تحالفات حتى 99 لاعبًا، أبحاث مشتركة، زعماء عالميون، والقتال على العاصمة.", "h2b": "اجمع طاقمك", "h2c": "أخبر أصدقاءك", "copy": "نسخ الرابط", "copied": "تم النسخ!", "text": "DistrictX: Rise of the Boss — كن الزعيم واستولِ على المدينة معي. مجانًا على iPhone:", "privacy": "سياسة الخصوصية", "help": "المساعدة"},
+  "he": {"lead": "לילה אחד העיר כבתה, והכנופיות חילקו אותה לרבעים. הפכו לבוס, אספו צוות אגדי, פתחו את הרובע שלכם וכבשו את העיר עם הברית. משחק אסטרטגיה חינמי ל-iPhone.", "betaT": "הצטרפו לבטא", "betaS": "שחקו עכשיו ב-iPhone ‏(TestFlight)", "launchT": "עדכנו אותי בהשקה", "launchS": "מייל אחד כשהמשחק יגיע ל-App Store במדינה שלכם", "email": "האימייל שלכם", "country": "המדינה שלכם", "join": "הרשמה", "discord": "הצטרפו ל-Discord", "note": "המקומות בבטא מוגבלים. לאחר אישור נשלח הזמנה במייל. בלי ספאם.", "ok": "נרשמתם! נעדכן אתכם בהשקה.", "okBeta": "תודה! לאחר האישור Apple תשלח לכם במייל הזמנה ל-TestFlight.", "bad": "ההרשמה נכשלה. בדקו את הכתובת ונסו שוב.", "sound": "🔊 הפעלת קול", "h2a": "הרחוב שלכם. החוקים שלכם.", "c1t": "בנו את הרובע", "c1": "תחנת כוח, בית יציקה, מעבדה, סדנת מכונות. כל מבנה מחזק את האימפריה שלכם.", "c2t": "הילחמו בחוכמה", "c2": "קרבות מהירים על משושים. אגפו, השתמשו ביכולות הגיבורים ושלחו את המכונות.", "c3t": "כבשו את העיר", "c3": "מפה חיה עם שחקנים אמיתיים. בריתות של עד 99 שחקנים, מחקר משותף, בוסים עולמיים והקרב על הבירה.", "h2b": "אספו צוות", "h2c": "ספרו לחברים", "copy": "העתקת קישור", "copied": "הועתק!", "text": "DistrictX: Rise of the Boss — הפכו לבוס וכבשו איתי את העיר. בחינם ל-iPhone:", "privacy": "מדיניות פרטיות", "help": "עזרה"}
 };
 const PAGE = "https://enkier.github.io/districtx-legal/waitlist/";
 const CODES = "AD AE AF AG AI AL AM AO AR AT AU AW AZ BA BB BD BE BF BG BH BI BJ BM BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CO CR CV CY CZ DE DJ DK DM DO DZ EC EE EG ES ET FI FJ FM FR GA GB GD GE GH GM GN GR GT GW GY HK HN HR HU ID IE IL IN IQ IS IT JM JO JP KE KG KH KN KR KW KY KZ LA LB LC LI LK LR LT LU LV LY MA MC MD ME MG MK ML MM MN MO MR MS MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NR NZ OM PA PE PG PH PK PL PS PT PW PY QA RO RS RW SA SB SC SE SG SI SK SL SN SR ST SV SZ TC TD TG TH TJ TM TN TO TR TT TW TZ UA UG US UY UZ VC VE VG VN VU WS XK YE ZA ZM ZW".split(" ");
 function fillCountries(t) {
   const sel = document.getElementById("country"), prev = sel.value;
-  const guess = prev || ((navigator.language || "").split("-")[1] || (lang === "pl" ? "PL" : "")).toUpperCase();
+  const guess = prev || ((navigator.language || "").split("-")[1] || ({ pl: "PL", ko: "KR", "zh-Hant": "TW", he: "IL" }[lang] || "")).toUpperCase();
   let names; try { names = new Intl.DisplayNames([lang], { type: "region" }); } catch (e) { names = { of: c => c }; }
   const list = CODES.map(c => [c, names.of(c) || c]).sort((a, b) => a[1].localeCompare(b[1], lang));
   sel.innerHTML = `<option value="" disabled ${CODES.includes(guess) ? "" : "selected"}>${t.country}</option>`
     + list.map(([c, n]) => `<option value="${c}" ${c === guess ? "selected" : ""}>${n}</option>`).join("");
 }
-let lang = new URLSearchParams(location.search).get("lang") || ((navigator.language || "en").toLowerCase().startsWith("pl") ? "pl" : "en");
+function detectLang() {
+  const asked = new URLSearchParams(location.search).get("lang");
+  if (asked && T[asked]) return asked;
+  for (const raw of (navigator.languages || [navigator.language || "en"])) {
+    const l = raw.toLowerCase();
+    if (l.startsWith("pl")) return "pl";
+    if (l.startsWith("zh")) return /hant|tw|hk|mo/.test(l) ? "zh-Hant" : "zh-Hans";
+    if (l.startsWith("ko")) return "ko";
+    if (l.startsWith("ar")) return "ar";
+    if (l.startsWith("he") || l.startsWith("iw")) return "he";
+    if (l.startsWith("en")) return "en";
+  }
+  return "en";
+}
+let lang = detectLang();
 function apply() {
   const t = T[lang];
   document.documentElement.lang = lang;
+  document.documentElement.dir = (lang === "ar" || lang === "he") ? "rtl" : "ltr";
   const v = document.getElementById("promo"), want = "media/promo_" + lang + ".mp4";
   if (v && !v.src.endsWith(want)) { v.src = want; v.play().catch(() => {}); }
   document.querySelectorAll("[data-t]").forEach(el => el.textContent = t[el.dataset.t]);
