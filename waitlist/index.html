@@ -23,7 +23,7 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .lang { position:absolute; top:14px; right:16px; z-index:3; display:flex; gap:4px; }
-  .lang button { background:rgba(10,14,20,.7); color:var(--muted); border:1px solid var(--line); padding:4px 10px; border-radius:99px; font-weight:700; font-size:13px; }
+  .lang button { width:42px; background:rgba(10,14,20,.7); color:var(--muted); border:1px solid var(--line); padding:4px 10px; border-radius:99px; font-weight:700; font-size:13px; }
   .lang button.on { color:#00121c; background:var(--cyan); border-color:var(--cyan); }
   .hero { position:relative; min-height:92vh; display:grid; place-items:center; padding:56px 16px 32px; overflow:hidden; }
   .hero::before { content:""; position:absolute; inset:0; background:url(media/bg.jpg) center/cover; filter:brightness(.35) saturate(1.2); transform:scale(1.08); animation:drift 18s ease-in-out infinite alternate; }
@@ -35,9 +35,17 @@
   .lead { color:#cfdae5; font-size:18px; max-width:520px; }
   .cta { display:inline-flex; align-items:center; gap:10px; margin-top:20px; padding:15px 24px; border-radius:14px; background:linear-gradient(135deg, #ffc54a, #ffb020); color:#1a1000; font-weight:800; text-decoration:none; box-shadow:0 0 30px rgba(255,176,32,.35); }
   .cta small { display:block; font-weight:600; opacity:.8; font-size:12px; }
-  form { display:flex; gap:8px; flex-wrap:wrap; margin-top:22px; max-width:520px; }
-  input[type=email] { flex:1 1 240px; padding:14px 16px; border-radius:12px; border:1px solid var(--line); background:rgba(10,14,20,.85); color:var(--fg); font:inherit; }
-  button.go { padding:14px 22px; border:0; border-radius:12px; background:linear-gradient(135deg, #3fd0ff, #2a8cff); color:#00121c; font:inherit; font-weight:800; cursor:pointer; }
+  form { display:grid; gap:10px; grid-template-columns:1fr 1fr; margin-top:22px; max-width:520px; }
+  .choice { grid-column:1 / -1; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .choice label { display:flex; flex-direction:column; justify-content:center; min-height:76px; padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:rgba(10,14,20,.85); cursor:pointer; font-weight:800; line-height:1.25; }
+  .choice label small { font-weight:500; color:var(--muted); font-size:12px; margin-top:4px; }
+  @media (max-width:600px) { .choice label { min-height:118px; } }
+  .choice input { position:absolute; opacity:0; pointer-events:none; }
+  .choice label:has(input:checked) { border-color:var(--amber); box-shadow:0 0 0 1px var(--amber), 0 0 24px rgba(255,176,32,.25); }
+  input[type=email], select { grid-column:1 / -1; min-width:0; padding:14px 16px; border-radius:12px; border:1px solid var(--line); background:rgba(10,14,20,.85); color:var(--fg); font:inherit; }
+  select { grid-column:auto; }
+  button.go { min-width:0; padding:14px 16px; border:0; border-radius:12px; background:linear-gradient(135deg, #ffc54a, #ffb020); color:#1a1000; font:inherit; font-weight:800; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .discord { display:inline-flex; align-items:center; justify-content:center; gap:8px; margin-top:14px; width:100%; max-width:520px; padding:12px 16px; border-radius:12px; background:#5865f2; color:#fff; font-weight:800; text-decoration:none; }
   button:disabled { opacity:.6; }
   .note { color:var(--muted); font-size:13px; margin-top:8px; }
   .ok { color:#5ff0a0; font-weight:700; } .err { color:#ff7b86; }
@@ -53,7 +61,7 @@
   .crew { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
   .crew img { width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:14px; border:1px solid var(--line); }
   .share { display:flex; gap:8px; flex-wrap:wrap; }
-  .share a, .share button { padding:10px 14px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); text-decoration:none; font:inherit; font-weight:600; font-size:14px; cursor:pointer; }
+  .share a, .share button { min-width:96px; text-align:center; padding:10px 14px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); text-decoration:none; font:inherit; font-weight:600; font-size:14px; cursor:pointer; }
   footer { text-align:center; color:var(--muted); padding:32px 16px 48px; font-size:14px; } footer a { color:var(--cyan); }
 </style>
 </head>
@@ -65,12 +73,17 @@
       <h1>DISTRICT X</h1>
       <div class="sub">Rise of the Boss</div>
       <p class="lead" data-t="lead"></p>
-      <a class="cta" href="https://testflight.apple.com/join/nkB82Uqr"><span>▶</span><span><span data-t="play"></span><small data-t="playSub"></small></span></a>
       <form id="wl">
+        <div class="choice">
+          <label><input type="radio" name="kind" value="beta" checked><span data-t="betaT"></span><small data-t="betaS"></small></label>
+          <label><input type="radio" name="kind" value="launch"><span data-t="launchT"></span><small data-t="launchS"></small></label>
+        </div>
         <input id="email" type="email" required autocomplete="email" data-ph="email">
+        <select id="country" required aria-label="Country"></select>
         <button class="go" id="go" type="submit" data-t="join"></button>
       </form>
       <div id="msg" class="note" data-t="note"></div>
+      <a class="discord" href="https://discord.gg/rHyrmC7Z42" target="_blank" rel="noopener">💬 <span data-t="discord"></span></a>
     </div>
     <div class="player">
       <video id="promo" src="media/promo.mp4" poster="media/poster.jpg" autoplay muted loop playsinline controls preload="metadata"></video>
@@ -108,8 +121,10 @@
 const T = {
   en: {
     lead: "One night the city went dark and gangs tore it into districts. Become the Boss, build a legendary crew, grow your district and take the city with your alliance. A free strategy game for iPhone.",
-    play: "Play now on iPhone", playSub: "Free beta via TestFlight", email: "Your e-mail", join: "Notify me",
-    note: "One e-mail on App Store launch day. No spam.", ok: "You're on the list! We'll let you know at launch.",
+    betaT: "Join the beta", betaS: "Play now on iPhone (TestFlight)", launchT: "Notify me at launch", launchS: "One e-mail when it's in your App Store",
+    email: "Your e-mail", country: "Your country", join: "Sign me up", discord: "Join our Discord",
+    note: "Beta places are limited. We'll e-mail you an invite once you're approved. No spam.",
+    ok: "You're on the list! We'll let you know at launch.", okBeta: "Thanks! Once you're approved, Apple will e-mail you a TestFlight invite.",
     bad: "Couldn't sign you up. Check the address and try again.", sound: "🔊 Sound on",
     h2a: "Your street. Your rules.", c1t: "Build your district", c1: "Power plant, foundry, lab, machine workshop. Every building powers up your empire.",
     c2t: "Fight tactically", c2: "Fast hex battles. Flank, use hero skills and send in your machines.",
@@ -120,8 +135,10 @@ const T = {
   },
   pl: {
     lead: "Pewnej nocy miasto zgasło, a gangi przejęły dzielnice. Zostań Bossem, zbierz legendarną ekipę, rozbuduj swoją dzielnicę i podbij miasto z sojuszem. Darmowa gra strategiczna na iPhone'a.",
-    play: "Zagraj teraz na iPhonie", playSub: "Darmowa beta w TestFlight", email: "Twój e-mail", join: "Zapisz mnie",
-    note: "Dostaniesz jedną wiadomość w dniu premiery w App Store. Bez spamu.", ok: "Jesteś na liście! Damy znać w dniu premiery.",
+    betaT: "Dołącz do bety", betaS: "Graj już teraz na iPhonie (TestFlight)", launchT: "Powiadom o premierze", launchS: "Jeden e-mail, gdy gra będzie w Twoim App Store",
+    email: "Twój e-mail", country: "Twój kraj", join: "Zapisz mnie", discord: "Dołącz do naszego Discorda",
+    note: "Liczba miejsc w becie jest ograniczona. Po akceptacji wyślemy zaproszenie e-mailem. Bez spamu.",
+    ok: "Jesteś na liście! Damy znać w dniu premiery.", okBeta: "Dzięki! Po akceptacji Apple wyśle Ci e-mailem zaproszenie do TestFlight.",
     bad: "Nie udało się zapisać. Sprawdź adres e-mail i spróbuj ponownie.", sound: "🔊 Włącz dźwięk",
     h2a: "Twoja ulica. Twoje zasady.", c1t: "Buduj dzielnicę", c1: "Elektrownia, odlewnia, laboratorium, warsztat maszyn. Każdy budynek wzmacnia Twoje imperium.",
     c2t: "Walcz taktycznie", c2: "Szybkie bitwy na heksach. Flankuj, używaj umiejętności bohaterów i wysyłaj do boju maszyny.",
@@ -132,13 +149,25 @@ const T = {
   }
 };
 const PAGE = "https://enkier.github.io/districtx-legal/waitlist/";
+const CODES = "AD AE AF AG AI AL AM AO AR AT AU AW AZ BA BB BD BE BF BG BH BI BJ BM BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CO CR CV CY CZ DE DJ DK DM DO DZ EC EE EG ES ET FI FJ FM FR GA GB GD GE GH GM GN GR GT GW GY HK HN HR HU ID IE IL IN IQ IS IT JM JO JP KE KG KH KN KR KW KY KZ LA LB LC LI LK LR LT LU LV LY MA MC MD ME MG MK ML MM MN MO MR MS MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NR NZ OM PA PE PG PH PK PL PS PT PW PY QA RO RS RW SA SB SC SE SG SI SK SL SN SR ST SV SZ TC TD TG TH TJ TM TN TO TR TT TW TZ UA UG US UY UZ VC VE VG VN VU WS XK YE ZA ZM ZW".split(" ");
+function fillCountries(t) {
+  const sel = document.getElementById("country"), prev = sel.value;
+  const guess = prev || ((navigator.language || "").split("-")[1] || (lang === "pl" ? "PL" : "")).toUpperCase();
+  let names; try { names = new Intl.DisplayNames([lang], { type: "region" }); } catch (e) { names = { of: c => c }; }
+  const list = CODES.map(c => [c, names.of(c) || c]).sort((a, b) => a[1].localeCompare(b[1], lang));
+  sel.innerHTML = `<option value="" disabled ${CODES.includes(guess) ? "" : "selected"}>${t.country}</option>`
+    + list.map(([c, n]) => `<option value="${c}" ${c === guess ? "selected" : ""}>${n}</option>`).join("");
+}
 let lang = new URLSearchParams(location.search).get("lang") || ((navigator.language || "en").toLowerCase().startsWith("pl") ? "pl" : "en");
 function apply() {
   const t = T[lang];
   document.documentElement.lang = lang;
+  const v = document.getElementById("promo"), want = "media/promo_" + lang + ".mp4";
+  if (v && !v.src.endsWith(want)) { v.src = want; v.play().catch(() => {}); }
   document.querySelectorAll("[data-t]").forEach(el => el.textContent = t[el.dataset.t]);
   document.querySelectorAll("[data-ph]").forEach(el => el.placeholder = t[el.dataset.ph]);
   document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.l === lang));
+  fillCountries(t);
   const q = encodeURIComponent, url = PAGE + "?src=share", text = t.text;
   const links = [
     ["X", `https://x.com/intent/post?text=${q(text)}&url=${q(url)}`],
@@ -168,14 +197,16 @@ const KEY = "sb_publishable_5QGx9Jwr_noPTJIcU-_A5A_vpwgppsz";
 document.getElementById("wl").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("email").value.trim();
+  const beta = document.querySelector("input[name=kind]:checked").value === "beta";
   const msg = document.getElementById("msg"), go = document.getElementById("go");
   go.disabled = true;
   try {
     const src = new URLSearchParams(location.search).get("src") || "landing";
     const r = await fetch(URL_, { method: "POST", headers: { "apikey": KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ p_email: email, p_language: (navigator.language || lang).slice(0, 5), p_source: src }) });
+      body: JSON.stringify({ p_email: email, p_language: (navigator.language || lang).slice(0, 5), p_source: src,
+                             p_country: document.getElementById("country").value || null, p_beta: beta }) });
     if (!r.ok) throw new Error(await r.text());
-    msg.className = "note ok"; msg.textContent = T[lang].ok;
+    msg.className = "note ok"; msg.textContent = beta ? T[lang].okBeta : T[lang].ok;
     document.getElementById("email").value = "";
   } catch (err) {
     msg.className = "note err"; msg.textContent = T[lang].bad;

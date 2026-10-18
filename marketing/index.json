@@ -2,6 +2,69 @@
  "updated": "2026-10-18",
  "items": [
   {
+   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_he.mp4",
+   "type": "video",
+   "lang": "he",
+   "theme": "prologue",
+   "seconds": 31,
+   "format": "9:16",
+   "note": "Prolog gry z lektorem i napisami"
+  },
+  {
+   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_ar.mp4",
+   "type": "video",
+   "lang": "ar",
+   "theme": "prologue",
+   "seconds": 31,
+   "format": "9:16",
+   "note": "Prolog gry z lektorem i napisami"
+  },
+  {
+   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_zh-Hant.mp4",
+   "type": "video",
+   "lang": "zh-Hant",
+   "theme": "prologue",
+   "seconds": 31,
+   "format": "9:16",
+   "note": "Prolog gry z lektorem i napisami"
+  },
+  {
+   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_zh-Hans.mp4",
+   "type": "video",
+   "lang": "zh-Hans",
+   "theme": "prologue",
+   "seconds": 31,
+   "format": "9:16",
+   "note": "Prolog gry z lektorem i napisami"
+  },
+  {
+   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_ko.mp4",
+   "type": "video",
+   "lang": "ko",
+   "theme": "prologue",
+   "seconds": 31,
+   "format": "9:16",
+   "note": "Prolog gry z lektorem i napisami"
+  },
+  {
+   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_en.mp4",
+   "type": "video",
+   "lang": "en",
+   "theme": "prologue",
+   "seconds": 31,
+   "format": "9:16",
+   "note": "Prolog gry z lektorem i napisami"
+  },
+  {
+   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_pl.mp4",
+   "type": "video",
+   "lang": "pl",
+   "theme": "prologue",
+   "seconds": 31,
+   "format": "9:16",
+   "note": "Prolog gry z lektorem i napisami"
+  },
+  {
    "url": "https://enkier.github.io/districtx-legal/marketing/alliance_en.mp4",
    "type": "video",
    "lang": "en",

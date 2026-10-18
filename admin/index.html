@@ -358,9 +358,15 @@
       <div class="scroll"><table id="purchases"><thead><tr><th>Data</th><th>Produkt</th><th>Gracz</th><th>Środowisko</th><th>Wygasa</th></tr></thead><tbody></tbody></table></div>
     </section>
 
-    <section>
-      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Lista oczekujących</h2><button class="ghost" style="flex:0 0 auto" id="wlExport">Eksport CSV</button></div>
-      <p class="muted">Strona zapisu: <a href="../waitlist/" style="color:var(--accent)">../waitlist/</a></p>
+    <section id="beta">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Chętni do bety i lista oczekujących</h2><button class="ghost" style="flex:0 0 auto" id="wlExport">Eksport CSV</button></div>
+      <p class="muted">Strona zapisu: <a href="../waitlist/" style="color:var(--accent)">../waitlist/</a>. Po akceptacji gracz trafia do grupy TestFlight „Strona www”, a Apple wysyła mu zaproszenie e-mailem. <span id="betaCfg"></span></p>
+      <div class="row" style="align-items:center">
+        <select id="wlFilter" style="flex:0 0 auto"><option value="new">Czekają na akceptację</option><option value="beta">Wszyscy chętni do bety</option><option value="launch">Tylko powiadomienie o premierze</option><option value="all">Wszyscy</option></select>
+        <button id="wlApprove" style="flex:0 0 auto">✓ Akceptuj zaznaczonych</button>
+        <button class="ghost" id="wlReject" style="flex:0 0 auto">✕ Odrzuć zaznaczonych</button>
+      </div>
+      <div class="scroll"><table id="wlTable"><thead><tr><th><input type="checkbox" id="wlAll"></th><th>E-mail</th><th>Kraj</th><th>Chce</th><th>Status</th><th>Data</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <div class="row"><div style="flex:0 0 auto"><button class="ghost" id="logout">Wyloguj</button></div></div>
@@ -421,6 +427,7 @@ async function startInner() {
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
   loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {});
+  loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
 
@@ -906,9 +913,47 @@ async function loadPurchases() {
     || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
 }
 
+// ---------- Beta requests from the website ----------
+const BETA_FN = SUPABASE_URL + "/functions/v1/beta-waitlist";
+const WL_STATUS = { new: "⏳ czeka", approved: "✓ zaakceptowany", invited: "📨 zaproszony", rejected: "✕ odrzucony", failed: "⚠️ błąd" };
+const flagOf = (c) => c ? c.replace(/./g, ch => String.fromCodePoint(0x1f1a5 + ch.charCodeAt(0))) + " " + c : "—";
+async function loadWaitlist() {
+  const f = $("wlFilter").value;
+  let q = sb.from("waitlist").select("id,email,country,language,source,wants_beta,status,invite_error,created_at").order("created_at", { ascending: false }).limit(500);
+  if (f === "new") q = q.eq("wants_beta", true).in("status", ["new", "approved", "failed"]);
+  if (f === "beta") q = q.eq("wants_beta", true);
+  if (f === "launch") q = q.eq("wants_beta", false);
+  const rows = await check(q);
+  $("wlAll").checked = false;
+  $("wlTable").querySelector("tbody").innerHTML = rows.map(r => `<tr><td><input type="checkbox" class="wlPick" value="${r.id}" ${r.wants_beta ? "" : "disabled"}></td>
+    <td>${esc(r.email)}<div class="muted">${esc(r.language || "")}${r.source ? " · " + esc(r.source) : ""}</div></td><td>${esc(flagOf(r.country))}</td>
+    <td>${r.wants_beta ? "🧪 beta" : "🔔 premiera"}</td><td>${WL_STATUS[r.status] || esc(r.status)}${r.invite_error ? `<div class="muted">${esc(r.invite_error)}</div>` : ""}</td>
+    <td>${when(r.created_at)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nikt nie czeka</td></tr>`;
+  fetch(BETA_FN).then(r => r.json()).then(c => {
+    $("betaCfg").textContent = (c.discord_admin ? "Powiadomienia: ✓" : "Powiadomienia: brak webhooka") + " · " + (c.app_store_connect ? "App Store Connect: ✓" : "App Store Connect: brak klucza – akceptacja zapisze się, zaproszenia wyślą się po dodaniu klucza");
+  }).catch(() => {});
+}
+$("wlFilter").onchange = () => loadWaitlist();
+$("wlAll").onchange = () => document.querySelectorAll(".wlPick:not(:disabled)").forEach(c => c.checked = $("wlAll").checked);
+async function decideBeta(approve) {
+  const ids = [...document.querySelectorAll(".wlPick:checked")].map(c => Number(c.value));
+  if (!ids.length) return toast("Zaznacz osoby na liście", true);
+  await check(sb.rpc("admin_decide_beta", { p_ids: ids, p_approve: approve }));
+  if (approve) {
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await (await fetch(BETA_FN, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + session.access_token }, body: JSON.stringify({ invite: ids }) })).json();
+    if (r.error === "asc_not_configured") toast("Zaakceptowano. Zaproszenia wyślą się po dodaniu klucza App Store Connect.");
+    else if (r.error) toast("Błąd App Store Connect: " + r.error, true);
+    else { const ok = r.results.filter(x => x.ok).length; toast(`Zaproszono ${ok} z ${r.results.length} (build ${r.build})`, ok < r.results.length); }
+  } else toast("Odrzucono");
+  loadWaitlist();
+}
+$("wlApprove").onclick = () => decideBeta(true).catch(() => {});
+$("wlReject").onclick = () => decideBeta(false).catch(() => {});
+
 $("wlExport").onclick = async () => {
-  const rows = await check(sb.from("waitlist").select("email,language,source,created_at").order("created_at"));
-  const csv = "email,language,source,created_at\n" + rows.map(r => [r.email, r.language, r.source, r.created_at].map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
+  const rows = await check(sb.from("waitlist").select("email,country,wants_beta,status,language,source,created_at").order("created_at"));
+  const csv = "email,country,wants_beta,status,language,source,created_at\n" + rows.map(r => [r.email, r.country, r.wants_beta, r.status, r.language, r.source, r.created_at].map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "waitlist.csv"; a.click();
 };
 
