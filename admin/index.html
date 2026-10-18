@@ -150,6 +150,13 @@
         <div><label for="tunCrMission">Kryształy za wygraną misję kampanii</label><input id="tunCrMission" type="number" min="0" placeholder="2"></div>
         <div><label for="tunCrMob">Kryształy za pokonanego moba</label><input id="tunCrMob" type="number" min="0" placeholder="1"></div>
       </div>
+      <h3 style="margin:14px 0 4px">Tarcza w sklepie za kryształy (cena)</h3>
+      <div class="row">
+        <div><label for="tunSh8">Tarcza 8 h</label><input id="tunSh8" type="number" min="0" placeholder="100"></div>
+        <div><label for="tunSh24">Tarcza 24 h</label><input id="tunSh24" type="number" min="0" placeholder="250"></div>
+        <div><label for="tunSh48">Tarcza 48 h</label><input id="tunSh48" type="number" min="0" placeholder="450"></div>
+        <div><label for="tunSh72">Tarcza 72 h</label><input id="tunSh72" type="number" min="0" placeholder="600"></div>
+      </div>
       <h3 style="margin:14px 0 4px">Najazdy mobów na dzielnice</h3>
       <div class="row">
         <div><label for="tunRaidsOn">Najazdy</label><select id="tunRaidsOn"><option value="">Włączone (domyślnie)</option><option value="off">Wyłączone</option></select></div>
@@ -501,6 +508,7 @@ async function loadTuning() {
   $("tunVip").value = val("vip_seconds_per_level"); $("tunPercent").value = val("build_time_percent");
   $("tunTeleport").value = val("teleport_price"); $("tunCrBoss").value = val("crystals_boss_attack");
   $("tunCrMission").value = val("crystals_mission"); $("tunCrMob").value = val("crystals_mob");
+  ["8","24","48","72"].forEach(h => $("tunSh" + h).value = tuning.shield_prices?.[h] ?? "");
   $("tunRaidsOn").value = tuning.raids_enabled === false ? "off" : ""; $("tunRaidPower").value = val("raid_power_percent"); $("tunRaidHours").value = val("raid_interval_hours");
   const current = $("tunBuilding").value;
   $("tunBuilding").innerHTML = tunDefaults.buildings.map(b => `<option value="${esc(b.id)}">${esc(b.name)}${tuning.build_times?.[b.id] ? " •" : ""}</option>`).join("");
@@ -538,6 +546,7 @@ $("tunSave").onclick = async () => {
   const value = { free_seconds_build: num("tunFreeBuild"), free_seconds_research: num("tunFreeResearch"), free_seconds_other: num("tunFreeOther"),
     vip_seconds_per_level: num("tunVip"), build_time_percent: num("tunPercent"),
     teleport_price: num("tunTeleport"), crystals_boss_attack: num("tunCrBoss"), crystals_mission: num("tunCrMission"), crystals_mob: num("tunCrMob"),
+    shield_prices: (() => { const o = {}; ["8","24","48","72"].forEach(h => { const v = num("tunSh" + h); if (v !== undefined) o[h] = v; }); return Object.keys(o).length ? o : undefined; })(),
     raids_enabled: $("tunRaidsOn").value === "off" ? false : undefined, raid_power_percent: num("tunRaidPower"),
     raid_interval_hours: $("tunRaidHours").value === "" ? undefined : Math.max(0.25, parseFloat($("tunRaidHours").value)), build_times: Object.keys(times).length ? times : undefined };
   Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
