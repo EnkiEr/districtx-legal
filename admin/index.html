@@ -150,6 +150,13 @@
         <div><label for="tunCrMission">Kryształy za wygraną misję kampanii</label><input id="tunCrMission" type="number" min="0" placeholder="2"></div>
         <div><label for="tunCrMob">Kryształy za pokonanego moba</label><input id="tunCrMob" type="number" min="0" placeholder="1"></div>
       </div>
+      <h3 style="margin:14px 0 4px">Najazdy mobów na dzielnice</h3>
+      <div class="row">
+        <div><label for="tunRaidsOn">Najazdy</label><select id="tunRaidsOn"><option value="">Włączone (domyślnie)</option><option value="off">Wyłączone</option></select></div>
+        <div><label for="tunRaidPower">Siła najazdu (%)</label><input id="tunRaidPower" type="number" min="1" placeholder="100"></div>
+        <div><label for="tunRaidHours">Co ile godzin najazd</label><input id="tunRaidHours" type="number" min="0.25" step="0.25" placeholder="8"></div>
+      </div>
+      <p class="muted">Siła 100% = wartość domyślna (rośnie z poziomem kwatery). 150 = mocniejsze moby, 50 = słabsze. Wyłączone najazdy nie nadrabiają się po ponownym włączeniu.</p>
       <div class="row" style="margin-top:8px">
         <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
         <div style="flex:0 0 auto"><button class="ghost" id="tunResetBuilding">Przywróć domyślne dla budynku</button></div>
@@ -494,6 +501,7 @@ async function loadTuning() {
   $("tunVip").value = val("vip_seconds_per_level"); $("tunPercent").value = val("build_time_percent");
   $("tunTeleport").value = val("teleport_price"); $("tunCrBoss").value = val("crystals_boss_attack");
   $("tunCrMission").value = val("crystals_mission"); $("tunCrMob").value = val("crystals_mob");
+  $("tunRaidsOn").value = tuning.raids_enabled === false ? "off" : ""; $("tunRaidPower").value = val("raid_power_percent"); $("tunRaidHours").value = val("raid_interval_hours");
   const current = $("tunBuilding").value;
   $("tunBuilding").innerHTML = tunDefaults.buildings.map(b => `<option value="${esc(b.id)}">${esc(b.name)}${tuning.build_times?.[b.id] ? " •" : ""}</option>`).join("");
   if (current) $("tunBuilding").value = current;
@@ -529,7 +537,9 @@ $("tunSave").onclick = async () => {
   const num = (id) => $(id).value === "" ? undefined : Math.max(0, parseInt($(id).value, 10));
   const value = { free_seconds_build: num("tunFreeBuild"), free_seconds_research: num("tunFreeResearch"), free_seconds_other: num("tunFreeOther"),
     vip_seconds_per_level: num("tunVip"), build_time_percent: num("tunPercent"),
-    teleport_price: num("tunTeleport"), crystals_boss_attack: num("tunCrBoss"), crystals_mission: num("tunCrMission"), crystals_mob: num("tunCrMob"), build_times: Object.keys(times).length ? times : undefined };
+    teleport_price: num("tunTeleport"), crystals_boss_attack: num("tunCrBoss"), crystals_mission: num("tunCrMission"), crystals_mob: num("tunCrMob"),
+    raids_enabled: $("tunRaidsOn").value === "off" ? false : undefined, raid_power_percent: num("tunRaidPower"),
+    raid_interval_hours: $("tunRaidHours").value === "" ? undefined : Math.max(0.25, parseFloat($("tunRaidHours").value)), build_times: Object.keys(times).length ? times : undefined };
   Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
   await check(sb.rpc("admin_set_config", { p_key: "tuning", p_value: value }));
   toast("Zapisano — gracze dostaną zmiany przy synchronizacji"); loadTuning(); loadConfig();
