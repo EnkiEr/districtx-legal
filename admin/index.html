@@ -268,8 +268,10 @@
       <div class="row">
         <div><label for="playerQuery">Nazwa lub ID</label><input id="playerQuery" placeholder="np. Boss"></div>
         <div style="flex:0 0 auto"><button id="playerSearch">Szukaj</button></div>
+        <div style="flex:0 0 auto"><button class="warn" id="playersDelete" disabled>Usuń zaznaczone (0)</button></div>
       </div>
-      <div class="scroll"><table id="players"><thead><tr><th>Gracz</th><th>Siła</th><th>HQ</th><th>Ostatnio</th><th>Status</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
+      <p class="muted">„Wycisz 24 h” blokuje graczowi pisanie na czacie przez 24 godziny (np. za spam lub wulgaryzmy), „Odcisz” zdejmuje tę blokadę od razu. „Banuj” całkowicie wyłącza gracza z gry online. „Usuń” kasuje konto na zawsze (postęp, zapis gry, wiadomości) – tego nie da się cofnąć; konta administratorów są pomijane.</p>
+      <div class="scroll"><table id="players"><thead><tr><th><input type="checkbox" id="playersAll" title="Zaznacz wszystkie"></th><th>Gracz</th><th>Siła</th><th>HQ</th><th>Ostatnio</th><th>Status</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
       <div id="playerDetail" class="card2 hidden"></div>
     </section>
     <section>
@@ -753,6 +755,7 @@ $("saveEconomy").onclick = async () => {
 async function searchPlayers() {
   const rows = await check(sb.rpc("admin_find_players", { p_query: $("playerQuery").value.trim() }));
   $("players").querySelector("tbody").innerHTML = rows.map(p => `<tr>
+    <td><input type="checkbox" data-sel="${esc(p.id)}"></td>
     <td><b>${esc(p.display_name)}</b><br><small class="muted">${esc(p.id)}</small></td>
     <td>${esc(p.power)}</td><td>${esc(p.hq_level)}</td><td>${when(p.last_seen_at)}</td>
     <td>${p.is_banned ? '<span class="pill err">ban</span>' : ''} ${p.muted_until && new Date(p.muted_until) > new Date() ? '<span class="pill">wyciszony</span>' : ''}</td>
@@ -762,14 +765,32 @@ async function searchPlayers() {
       <button class="ghost" data-act="mute" data-id="${esc(p.id)}">Wycisz 24 h</button>
       <button class="ghost" data-act="unmute" data-id="${esc(p.id)}">Odcisz</button>
       <button class="${p.is_banned ? 'ghost' : 'warn'}" data-act="${p.is_banned ? 'unban' : 'ban'}" data-id="${esc(p.id)}">${p.is_banned ? 'Odbanuj' : 'Banuj'}</button>
-    </td></tr>`).join("") || `<tr><td colspan="6" class="muted">Brak wyników</td></tr>`;
+      <button class="warn" data-act="delete" data-id="${esc(p.id)}" data-name="${esc(p.display_name)}">Usuń</button>
+    </td></tr>`).join("") || `<tr><td colspan="7" class="muted">Brak wyników</td></tr>`;
+  $("playersAll").checked = false; updatePlayersDelete();
 }
+function selectedPlayers() { return [...$("players").querySelectorAll("input[data-sel]:checked")].map(c => c.dataset.sel); }
+function updatePlayersDelete() {
+  const n = selectedPlayers().length;
+  $("playersDelete").textContent = `Usuń zaznaczone (${n})`; $("playersDelete").disabled = n === 0;
+}
+async function deleteAccounts(ids, label) {
+  if (!ids.length) return;
+  const typed = prompt(`Usunąć na zawsze ${label}?\nTego nie da się cofnąć. Wpisz USUŃ, aby potwierdzić.`);
+  if ((typed || "").trim().toUpperCase() !== "USUŃ") return toast("Anulowano");
+  const n = await check(sb.rpc("admin_delete_accounts", { p_ids: ids, p_confirm: "DELETE" }));
+  toast(`Usunięto kont: ${n}`); searchPlayers();
+}
+$("playersAll").onchange = (e) => { $("players").querySelectorAll("input[data-sel]").forEach(c => c.checked = e.target.checked); updatePlayersDelete(); };
+$("players").addEventListener("change", (e) => { if (e.target.matches("input[data-sel]")) updatePlayersDelete(); });
+$("playersDelete").onclick = () => { const ids = selectedPlayers(); deleteAccounts(ids, `zaznaczone konta (${ids.length})`); };
 $("playerSearch").onclick = searchPlayers;
 $("playerQuery").onkeydown = (e) => { if (e.key === "Enter") searchPlayers(); };
 $("players").onclick = async (e) => {
   const b = e.target.closest("button[data-act]"); if (!b) return;
   const id = b.dataset.id, act = b.dataset.act;
   if (act === "detail") { showPlayer(id); return; }
+  if (act === "delete") { deleteAccounts([id], `konto „${b.dataset.name}”`); return; }
   if (act === "gift") {
     const text = prompt('Zasoby jako JSON, np. {"crystals": 500, "steel": 10000}', '{"crystals": 500}');
     if (!text) return;
