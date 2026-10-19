@@ -58,6 +58,36 @@
   header #who { font-size:12px; overflow-wrap:anywhere; }
   img, video, canvas, svg { max-width:100%; }
   @media (max-width:600px) { main { padding:10px; gap:12px; } section { padding:12px; } .row > * { flex-basis:100%; } .row > [style*="flex:0 0 auto"] { flex-basis:auto; } }
+
+  /* ---- 2026-10 redesign: categories, bottom tab bar on iPhone, calmer cards ---- */
+  :root { --panel2:#0f1720; --radius:16px; }
+  body { font-size:16px; background:radial-gradient(1200px 600px at 50% -200px, #12324066, transparent), var(--bg); }
+  header { backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); background:#0b0f14d9; }
+  header h1 { font-size:17px; letter-spacing:.2px; }
+  section { border-radius:var(--radius); padding:18px; box-shadow:0 1px 0 #ffffff08 inset, 0 8px 24px #0006; }
+  section > .row:first-child h2, section > h2 { font-size:17px; display:flex; align-items:center; gap:8px; }
+  section h2::before { content:""; width:4px; height:18px; border-radius:2px; background:var(--cat, var(--accent)); display:inline-block; }
+  button, input, select { min-height:44px; border-radius:12px; }
+  textarea { border-radius:12px; }
+  button.ghost { border-color:#3fd0ff66; }
+  .stat { border-radius:14px; padding:14px; } .stat b { font-size:26px; }
+  #catnav { position:sticky; top:var(--hdr, 60px); z-index:3; display:flex; gap:6px; padding:8px 16px; background:#0b0f14e6; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--line); overflow-x:auto; }
+  #catnav button { flex:0 0 auto; min-height:40px; background:#121a23; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:6px 14px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  #catnav button.on { background:var(--accent); color:#001018; border-color:var(--accent); }
+  #catnav .ic { font-size:16px; line-height:1; }
+  #catnav .cnt { min-width:18px; height:18px; border-radius:9px; background:var(--danger); color:#fff; font-size:11px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px; }
+  #cattitle { font-size:24px; font-weight:800; margin:4px 2px 0; }
+  #cattitle small { display:block; font-size:13px; font-weight:500; color:var(--muted); }
+  @media (max-width:700px) {
+    #catnav { position:fixed; top:auto; bottom:0; left:0; right:0; justify-content:space-around; gap:0; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); border-bottom:0; overflow:visible; }
+    #catnav button { flex:1 1 0; flex-direction:column; gap:2px; background:none; border:0; border-radius:12px; padding:6px 2px; font-size:11px; min-height:52px; position:relative; }
+    #catnav button.on { background:#3fd0ff1f; color:var(--accent); }
+    #catnav .ic { font-size:20px; }
+    #catnav .cnt { position:absolute; top:2px; right:calc(50% - 22px); }
+    main { padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
+    #toast { bottom:calc(84px + env(safe-area-inset-bottom)); }
+    table { font-size:13px; }
+  }
 </style>
 </head>
 <body>
@@ -102,6 +132,36 @@
     <section>
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Statystyki</h2><button class="ghost" style="flex:0 0 auto" id="refreshStats">Odśwież</button></div>
       <div class="grid" id="stats" style="margin-top:12px"></div>
+    </section>
+
+    <section id="gmSection">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🎮 Agent GM (mistrz gry)</h2><button class="ghost" style="flex:0 0 auto" id="gmReload">Odśwież</button></div>
+      <p class="hint">Gdy agent jest włączony, co 15 minut sprawdza serwer i sam dba, żeby gra żyła: wypuszcza bossa świata w rozsądnych odstępach, ogłasza fale mobów (więcej łupu z mobów) i wieczorną „szczęśliwą godzinę”. Poziom bossa i jego punkty życia dobiera do aktywnych graczy z ostatnich 3 dni.</p>
+      <div class="card2" style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+        <div><b style="font-size:17px">Agent GM</b><div class="muted" id="gmState">—</div></div>
+        <label style="display:flex; align-items:center; gap:8px; margin:0; color:var(--fg)"><input type="checkbox" id="gmOn" style="width:28px; height:28px"> Włączony</label>
+      </div>
+      <div class="grid" id="gmStats" style="margin-top:12px"></div>
+      <div class="row" style="margin-top:6px">
+        <div><label for="gmBossEvery">Boss świata co (godz.)</label><input id="gmBossEvery" type="number" min="2" max="168"></div>
+        <div><label for="gmBossMin">Czas życia bossa (min)</label><input id="gmBossMin" type="number" min="30" max="10080"></div>
+        <div><label for="gmWaveEvery">Fala mobów co (godz.)</label><input id="gmWaveEvery" type="number" min="4" max="168"></div>
+        <div><label for="gmWaveHours">Fala trwa (godz.)</label><input id="gmWaveHours" type="number" min="1" max="24"></div>
+        <div><label for="gmWavePct">Dodatkowy łup z mobów (%)</label><input id="gmWavePct" type="number" min="10" max="300"></div>
+      </div>
+      <label for="gmDiff">Poziom trudności: <b id="gmDiffVal">100%</b></label>
+      <input id="gmDiff" type="range" min="30" max="200" step="10" style="padding:0">
+      <div class="row">
+        <div><label for="gmHappy">Szczęśliwa godzina (+50% przez 2 h)</label><select id="gmHappy"><option value="1">Włączona</option><option value="0">Wyłączona</option></select></div>
+        <div><label for="gmHappyHour">Godzina startu (czas polski)</label><input id="gmHappyHour" type="number" min="0" max="23"></div>
+        <div><label for="gmAnnounce">Ogłoszenia w grze i na czacie</label><select id="gmAnnounce"><option value="1">Tak</option><option value="0">Nie</option></select></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div style="flex:1 1 auto"><button id="gmSave">Zapisz ustawienia</button></div>
+        <div style="flex:1 1 auto"><button class="ghost" id="gmBossNow">Wypuść bossa teraz</button></div>
+      </div>
+      <h3 style="margin:16px 0 6px">Ostatnie działania agenta</h3>
+      <div class="scroll"><table id="gmLog"><tbody></tbody></table></div>
     </section>
 
     <section id="eventsSection">
@@ -444,7 +504,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadBots().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -974,7 +1034,7 @@ async function loadWaitlist() {
   if (f === "launch") q = q.eq("wants_beta", false);
   const rows = await check(q);
   $("wlAll").checked = false;
-  $("wlTable").querySelector("tbody").innerHTML = rows.map(r => `<tr><td><input type="checkbox" class="wlPick" value="${r.id}" ${r.wants_beta ? "" : "disabled"}></td>
+  $("wlTable").querySelector("tbody").innerHTML = rows.map(r => `<tr${r.wants_beta && r.status === "new" ? ' data-pending="1"' : ""}><td><input type="checkbox" class="wlPick" value="${r.id}" ${r.wants_beta ? "" : "disabled"}></td>
     <td>${esc(r.email)}<div class="muted">${esc(r.language || "")}${r.source ? " · " + esc(r.source) : ""}</div></td><td>${esc(flagOf(r.country))}</td>
     <td>${r.wants_beta ? "🧪 beta" : "🔔 premiera"}</td><td>${WL_STATUS[r.status] || esc(r.status)}${r.invite_error ? `<div class="muted">${esc(r.invite_error)}</div>` : ""}</td>
     <td>${when(r.created_at)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nikt nie czeka</td></tr>`;
@@ -1197,8 +1257,110 @@ $("sysSend").onclick = async () => {
   await check(sb.rpc("admin_post_system_message", { p_body: body })); $("sysMsg").value = ""; toast("Wysłano"); if ($("chatChannel").value === "world") loadChat();
 };
 
+
+// ---- Agent GM ----
+const GM_ACT = { boss: "👹 Boss świata", wave: "🧟 Fala mobów", happy_hour: "✨ Szczęśliwa godzina" };
+async function loadGM() {
+  const r = await check(sb.rpc("admin_gm_status")); if (!r) return;
+  const c = r.config || {}, st = r.stats || {};
+  $("gmOn").checked = !!c.enabled;
+  $("gmState").textContent = c.enabled ? "Działa – sprawdza serwer co 15 min" : "Wyłączony – nic nie robi sam";
+  $("gmState").className = c.enabled ? "ok" : "muted";
+  $("gmBossEvery").value = c.boss_every_hours ?? 12; $("gmBossMin").value = c.boss_minutes ?? 180;
+  $("gmWaveEvery").value = c.wave_every_hours ?? 24; $("gmWaveHours").value = c.wave_hours ?? 3; $("gmWavePct").value = c.wave_percent ?? 100;
+  $("gmDiff").value = Math.round((c.difficulty ?? 1) * 100); $("gmDiffVal").textContent = $("gmDiff").value + "%";
+  $("gmHappy").value = c.happy_hour === false ? "0" : "1"; $("gmHappyHour").value = c.happy_hour_local ?? 19; $("gmAnnounce").value = c.announce === false ? "0" : "1";
+  const b = r.boss_active;
+  $("gmStats").innerHTML = [
+    ["Aktywni gracze (3 dni)", st.active ?? 0], ["Mediana poziomu siedziby", st.median_hq ?? "–"], ["Najwyższa siedziba", st.top_hq ?? "–"],
+    ["Boss teraz", b ? `${esc(b.title)} · poz. ${b.level} · ${Math.round(100 * b.hp / Math.max(1, b.max_hp))}% HP` : "brak"]
+  ].map(([l, v]) => `<div class="stat"><b>${v}</b><small>${l}</small></div>`).join("");
+  $("gmLog").querySelector("tbody").innerHTML = (r.log || []).map(l => `<tr><td>${when(l.at)}</td><td>${GM_ACT[l.action] || esc(l.action)}</td><td class="muted">${
+    l.action === "boss" ? `${esc(l.detail.title)} · poz. ${l.detail.level} · region ${l.detail.region} · ${l.detail.active} aktywnych` :
+    l.action === "wave" ? `+${l.detail.percent}% łupu` : esc(l.detail.kind || "")}</td></tr>`).join("") || `<tr><td class="muted">Agent jeszcze nic nie zrobił</td></tr>`;
+}
+async function saveGM(extra) {
+  const value = Object.assign({
+    enabled: $("gmOn").checked,
+    boss_every_hours: parseInt($("gmBossEvery").value || "12", 10), boss_minutes: parseInt($("gmBossMin").value || "180", 10),
+    wave_every_hours: parseInt($("gmWaveEvery").value || "24", 10), wave_hours: parseInt($("gmWaveHours").value || "3", 10),
+    wave_percent: parseInt($("gmWavePct").value || "100", 10), difficulty: parseInt($("gmDiff").value, 10) / 100,
+    happy_hour: $("gmHappy").value === "1", happy_hour_local: parseInt($("gmHappyHour").value || "19", 10), announce: $("gmAnnounce").value === "1"
+  }, extra || {});
+  await check(sb.rpc("admin_set_config", { p_key: "gm", p_value: value }));
+  toast(value.enabled ? "Agent GM działa" : "Zapisano – agent wyłączony"); loadGM();
+}
+$("gmDiff").oninput = () => { $("gmDiffVal").textContent = $("gmDiff").value + "%"; };
+$("gmOn").onchange = () => saveGM();
+$("gmSave").onclick = () => saveGM();
+$("gmReload").onclick = () => loadGM();
+$("gmBossNow").onclick = async () => {
+  if (!confirm("Wypuścić teraz bossa świata dopasowanego do graczy?")) return;
+  const r = await check(sb.rpc("admin_gm_run", { p_boss: true }));
+  toast(r && r.done && r.done.includes("boss") ? "Boss wypuszczony" : "Boss już jest na mapie"); loadGM();
+};
 sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN") start(); });
 start();
+</script>
+
+<script>
+// ---- Category navigation (keeps every existing section and its handlers) ----
+(function(){
+  const CATS = [
+    { id:"home", ic:"📊", name:"Pulpit", sub:"Statystyki, zakupy, zgłoszenia i ogłoszenia", color:"#3fd0ff",
+      match:["Statystyki","Ostatnie zakupy","Opinie i błędy","Ogłoszenia w grze"] },
+    { id:"players", ic:"👥", name:"Gracze", sub:"Gracze, sojusze, beta i prezenty", color:"#4ade80",
+      match:["=Gracze","Sojusze","Konta z bety","Chętni do bety","Prezent dla"] },
+    { id:"events", ic:"🎉", name:"Wydarzenia", sub:"Boss świata, kalendarz, promocje i push", color:"#ffb547",
+      match:["Agent GM","Wydarzenia na żywo","Kalendarz","Promocja","Kampanie push"] },
+    { id:"game", ic:"⚙️", name:"Gra", sub:"Balans, czasy, gracze AI, VIP i konfiguracja", color:"#b28bff",
+      match:["Przyspieszenia","Gracze AI","Progi VIP","Ekonomia","Konfiguracja"] },
+    { id:"mod", ic:"🛡️", name:"Moderacja", sub:"Czat, filtr, sporne walki i kopie", color:"#ff5d6c",
+      match:["Czat i moderacja","Filtr wulgaryzmów","Sporne wyniki","Kopie zapasowe"] }
+  ];
+  const app = document.getElementById("app"); if (!app) return;
+  const title = (sec) => { const h = sec.querySelector("h2"); return h ? h.textContent.replace(/^[^\p{L}]+/u, "").trim() : ""; };
+  const secs = Array.from(app.children).filter(e => e.tagName === "SECTION");
+  for (const sec of secs) {
+    const t = title(sec);
+    const cat = CATS.find(c => c.match.some(m => m.startsWith("=") ? t === m.slice(1) : (t === m || t.startsWith(m)))) || CATS[0];
+    sec.dataset.cat = cat.id; sec.style.setProperty("--cat", cat.color);
+  }
+  const nav = document.createElement("nav"); nav.id = "catnav"; nav.setAttribute("aria-label", "Kategorie");
+  const head = document.createElement("div"); head.id = "cattitle";
+  app.prepend(head);
+  for (const c of CATS) {
+    const b = document.createElement("button"); b.type = "button"; b.dataset.cat = c.id;
+    b.innerHTML = '<span class="ic" aria-hidden="true">' + c.ic + '</span><span>' + c.name + '</span>';
+    b.onclick = () => show(c.id, true); nav.appendChild(b);
+  }
+  document.querySelector("header").after(nav);
+  const setHdr = () => document.documentElement.style.setProperty("--hdr", document.querySelector("header").offsetHeight + "px");
+  setHdr(); addEventListener("resize", setHdr);
+  function show(id, scroll) {
+    const c = CATS.find(x => x.id === id) || CATS[0];
+    try { localStorage.setItem("dxadmin.cat", c.id); } catch (e) {}
+    for (const sec of secs) sec.classList.toggle("hidden", sec.dataset.cat !== c.id);
+    for (const b of nav.children) b.classList.toggle("on", b.dataset.cat === c.id);
+    head.innerHTML = c.ic + " " + c.name + "<small>" + c.sub + "</small>";
+    if (scroll) scrollTo({ top: 0, behavior: "smooth" });
+  }
+  // Pending work as red counters: beta requests waiting for a decision.
+  function badges() {
+    const pending = document.querySelectorAll('#beta tr[data-pending]').length;
+    const b = nav.querySelector('[data-cat="players"]'); if (!b) return;
+    let cnt = b.querySelector(".cnt");
+    if (pending > 0) { if (!cnt) { cnt = document.createElement("span"); cnt.className = "cnt"; b.appendChild(cnt); } cnt.textContent = pending; }
+    else if (cnt) cnt.remove();
+  }
+  new MutationObserver(badges).observe(app, { childList: true, subtree: true });
+  // Nav only once signed in (the app container becomes visible).
+  const sync = () => { nav.classList.toggle("hidden", app.classList.contains("hidden")); };
+  new MutationObserver(sync).observe(app, { attributes: true, attributeFilter: ["class"] }); sync();
+  let saved = "home"; try { saved = localStorage.getItem("dxadmin.cat") || "home"; } catch (e) {}
+  if (location.hash === "#beta") saved = "players";
+  show(saved, false);
+})();
 </script>
 </body>
 </html>
