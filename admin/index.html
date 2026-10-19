@@ -191,6 +191,24 @@
       <p class="muted">Czas budowy poziomu podawaj jako 30s, 15m, 2h, 1d 4h albo liczbę sekund. Puste = domyślny. Badania sojuszu i boosty skracają go dalej.</p>
       <div class="scroll" style="max-height:420px"><table id="tunLevels"><thead><tr><th>Poziom</th><th>Domyślnie</th><th>Ustawione</th></tr></thead><tbody></tbody></table></div>
     </section>
+    <section id="bots">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🤖 Gracze AI</h2><button class="ghost" style="flex:0 0 auto" id="botReload">Odśwież</button></div>
+      <p class="muted">Boty żyją na wspólnej mapie jak gracze: rozbudowują bazy, walczą między sobą i z graczami, można je atakować. Mają 🤖 przed nazwą. Działają co 10 minut na serwerze.</p>
+      <div class="row">
+        <div><label for="botOn">Gracze AI</label><select id="botOn"><option value="off">Wyłączeni</option><option value="on">Włączeni</option></select></div>
+        <div><label for="botCount">Liczba botów (0–100)</label><input id="botCount" type="number" min="0" max="100" step="1"></div>
+        <div><label for="botPlayers">Atakują prawdziwych graczy</label><select id="botPlayers"><option value="yes">Tak</option><option value="no">Nie, tylko siebie nawzajem</option></select></div>
+      </div>
+      <div class="row">
+        <div style="flex:2 1 280px"><label for="botIq">Inteligencja: <b id="botIqVal">50%</b></label><input id="botIq" type="range" min="0" max="100" step="5" style="width:100%"></div>
+        <div><label for="botMinHq">Nie atakują graczy poniżej Kwatery</label><input id="botMinHq" type="number" min="1" max="20" step="1"></div>
+        <div><label for="botPerDay">Maks. ataków AI na gracza / dobę</label><input id="botPerDay" type="number" min="0" max="10" step="1"></div>
+      </div>
+      <p class="muted">Inteligencja: tempo rozwoju i produkcji, siła armii (±20%), dowódca w bitwie (do 54% sierżant, 55–84% major, od 85% generał), trafniejszy wybór celów i zemsta na graczach, którzy je pokonali. Boty nie atakują graczy z tarczą, nieaktywnych od 3 dni ani dużo słabszych.</p>
+      <div class="row"><div style="flex:0 0 auto"><button id="botSave">Zapisz i zastosuj</button></div></div>
+      <div id="botStatus" class="muted" style="margin-top:8px"></div>
+      <div class="scroll"><table id="botTop"><thead><tr><th>Bot</th><th>Kwatera</th><th>Moc</th><th>Wygrane</th><th>Przegrane</th></tr></thead><tbody></tbody></table></div>
+    </section>
     <section>
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Progi VIP</h2><button class="ghost" style="flex:0 0 auto" id="vipReload">Odśwież</button></div>
       <p class="muted">Łączna kwota zakupów gracza (cena referencyjna w USD) potrzebna na każdy poziom. VIP 1 = pierwszy zakup. Do 20 poziomów; puste wiersze na końcu = mniej poziomów. Po zapisie poziomy wszystkich graczy są przeliczane od razu.</p>
@@ -426,7 +444,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadBots().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -578,6 +596,37 @@ $("tunSave").onclick = async () => {
   Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
   await check(sb.rpc("admin_set_config", { p_key: "tuning", p_value: value }));
   toast("Zapisano — gracze dostaną zmiany przy synchronizacji"); loadTuning(); loadConfig();
+};
+
+// ---------- AI players ----------
+async function loadBots() {
+  const rows = await check(sb.from("live_config").select("value").eq("key", "bots"));
+  const c = rows[0]?.value || {};
+  $("botOn").value = c.enabled ? "on" : "off";
+  $("botCount").value = c.count ?? 20;
+  $("botPlayers").value = c.attack_players === false ? "no" : "yes";
+  $("botIq").value = c.intelligence ?? 50; $("botIqVal").textContent = $("botIq").value + "%";
+  $("botMinHq").value = c.min_target_hq ?? 5;
+  $("botPerDay").value = c.max_attacks_per_player_day ?? 2;
+  const st = await sb.rpc("admin_bots_status");
+  if (st.error) { $("botStatus").textContent = "Brak danych (uruchom migrację 0035)."; return; }
+  showBotStatus(st.data);
+}
+function showBotStatus(s) {
+  $("botStatus").textContent = `Aktywne: ${s.active} · ukryte: ${s.hidden} · średnia Kwatera: ${s.avg_hq ?? "—"} (maks. ${s.max_hq ?? "—"}) · walki botów 24 h: ${s.bot_fights_24h} · ataki na graczy 24 h: ${s.raids_on_players_24h} · gracze zaatakowali boty 24 h: ${s.players_hit_bots_24h}`;
+  $("botTop").querySelector("tbody").innerHTML = (s.top || []).map(b => `<tr><td>${esc(b.name)}</td><td>${b.hq}</td><td>${b.power}</td><td>${b.wins}</td><td>${b.losses}</td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">Brak aktywnych botów</td></tr>`;
+}
+$("botIq").oninput = () => $("botIqVal").textContent = $("botIq").value + "%";
+$("botReload").onclick = () => loadBots().catch(() => {});
+$("botSave").onclick = async () => {
+  const int = (id, lo, hi, d) => { const v = parseInt($(id).value, 10); return isNaN(v) ? d : Math.max(lo, Math.min(hi, v)); };
+  const value = { enabled: $("botOn").value === "on", count: int("botCount", 0, 100, 20), intelligence: int("botIq", 0, 100, 50),
+    attack_players: $("botPlayers").value === "yes", min_target_hq: int("botMinHq", 1, 20, 5), max_attacks_per_player_day: int("botPerDay", 0, 10, 2) };
+  await check(sb.rpc("admin_set_config", { p_key: "bots", p_value: value }));
+  const st = await check(sb.rpc("admin_bots_apply"));
+  showBotStatus(st);
+  toast(value.enabled ? `Zapisano — ${st.active} botów na mapie, pierwsze ruchy w ciągu 10 minut` : "Zapisano — boty ukryte");
 };
 
 // ---------- VIP thresholds ----------
