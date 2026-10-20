@@ -193,10 +193,10 @@
 
     <section>
       <h2>Komunikat wydarzenia (przejeżdżający pasek)</h2>
-      <p class="hint">Pasek z bieżącym wydarzeniem (np. „Tydzień Nauki”) wjeżdża od prawej, zatrzymuje się, mruga i znika. Gracz może w ustawieniach wybrać zamiast tego stały pasek.</p>
+      <p class="hint">Pasek z bieżącym wydarzeniem (np. „Tydzień Nauki”) wjeżdża od prawej, zostaje na ustawiony czas (domyślnie 10 s) i znika. Gracz może w ustawieniach wybrać zamiast tego stały pasek.</p>
       <div class="row">
         <div><label for="bannerEvery">Pokazuj co (minuty)</label><input id="bannerEvery" type="number" min="1" max="120" step="1"></div>
-        <div><label for="bannerBlinks">Liczba mrugnięć</label><input id="bannerBlinks" type="number" min="0" max="10" step="1"></div>
+        <div><label for="bannerHold">Czas wyświetlania (s)</label><input id="bannerHold" type="number" min="3" max="60" step="1"></div>
         <div style="flex:0 0 auto"><button id="bannerSave">Zapisz</button></div>
       </div>
     </section>
@@ -925,12 +925,12 @@ async function loadBanner() {
   const { data } = await sb.from("live_config").select("value").eq("key", "event_banner").maybeSingle();
   const v = (data && data.value) || {};
   $("bannerEvery").value = v.interval_minutes ?? 5;
-  $("bannerBlinks").value = v.blinks ?? 3;
+  $("bannerHold").value = v.hold_seconds ?? 10;
 }
 $("bannerSave").onclick = async () => {
   const every = Math.min(120, Math.max(1, parseInt($("bannerEvery").value || "5", 10)));
-  const blinks = Math.min(10, Math.max(0, parseInt($("bannerBlinks").value || "3", 10)));
-  await check(sb.rpc("admin_set_config", { p_key: "event_banner", p_value: { interval_minutes: every, blinks } }));
+  const hold_seconds = Math.min(60, Math.max(3, parseInt($("bannerHold").value || "10", 10)));
+  await check(sb.rpc("admin_set_config", { p_key: "event_banner", p_value: { interval_minutes: every, hold_seconds } }));
   toast("Zapisano – gracze dostaną to przy najbliższej synchronizacji (do 5 min)"); loadBanner();
 };
 $("refreshStats").onclick = loadStats;
