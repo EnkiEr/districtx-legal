@@ -293,7 +293,7 @@
       <p class="muted">Bonus liczy serwer przy dołączeniu do natarcia (poziom badania × wartość, maks. 10 poziomów). Natarcie na gracza: dołączyć może najwyżej tylu członków, ile wynosi limit. Natarcie na sojusz/region: dołącza każdy, a na jednego przeciwnika przypada najwyżej limit (fale po kolei); po dołączeniu członek dostaje najbardziej wyrównanego przeciwnika, a ogłaszający może przestawić pary ręcznie lub automatycznie w aplikacji.</p>
       <h3 style="margin:14px 0 6px">Marsze i ostrzeżenia o ataku</h3>
       <div class="row">
-        <div><label for="atkWarn">Ostrzeżenie przed atakiem (s)</label><input id="atkWarn" type="number" min="0" max="3600" placeholder="60"></div>
+        <div><label for="atkWarn">Ostrzeżenie przed atakiem (s)</label><input id="atkWarn" type="number" min="0" max="3600" placeholder="20"></div>
         <div><label for="atkRadarMax">Maks. dodatek z radaru (s)</label><input id="atkRadarMax" type="number" min="0" max="7200" placeholder="1800"></div>
         <div><label for="atkPerPoint">Czas marszu na punkt mapy (s)</label><input id="atkPerPoint" type="number" min="0.05" max="5" step="0.05" placeholder="0.35"></div>
         <div><label for="atkMin">Marsz min. (s)</label><input id="atkMin" type="number" min="5" max="3600" placeholder="30"></div>
@@ -302,7 +302,7 @@
         <div><label for="atkAuto">Walka automatyczna po dotarciu po (s)</label><input id="atkAuto" type="number" min="30" max="3600" placeholder="120"></div>
         <div style="flex:0 0 auto;align-self:flex-end"><button id="atkSave">Zapisz marsze</button></div>
       </div>
-      <p class="muted">Atakowany dostaje powiadomienie na „Ostrzeżenie” sekund przed uderzeniem, plus tyle, ile daje jego radar (gałąź Wywiad, do 8 min), ale nie więcej niż maks. dodatek. Marsz = odległość × czas na punkt, w granicach min–maks. Jeśli atakujący nie rozpocznie walki po dotarciu, po podanym czasie rozegra się ona sama.</p>
+      <p class="muted">Bez badań radaru atakowany dostaje powiadomienie na „Ostrzeżenie” sekund przed uderzeniem (domyślnie 20 s); każdy poziom radaru dodaje więcej (gałąź Wywiad, do 8 min), ale nie więcej niż maks. dodatek. Marsz = odległość × czas na punkt, w granicach min–maks. Jeśli atakujący nie rozpocznie walki po dotarciu, po podanym czasie rozegra się ona sama.</p>
       <p class="muted">Moc gracza: mnoży zdrowie, atak i obronę bossa, bohaterów i maszyn wszystkich graczy w całej grze (100% = obecny balans, który ma już wbudowane +30%; 120 = jeszcze mocniej, 80 = słabiej). Redukcja: o tyle procent mniej maszyn pada w PvP i trafia do regeneracji w Warsztacie naprawczym (domyślnie 30%, max 90).</p>
       <div class="row" style="margin-top:8px">
         <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
@@ -754,7 +754,7 @@ $("tunSave").onclick = async () => {
 
 $("atkSave").onclick = async () => {
   const n = (id, lo, hi, d) => { const v = parseFloat($(id).value); return Number.isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
-  const value = { warning_seconds: n("atkWarn", 0, 3600, 60), radar_max_seconds: n("atkRadarMax", 0, 7200, 1800), travel_seconds_per_point: n("atkPerPoint", 0.05, 5, 0.35),
+  const value = { warning_seconds: n("atkWarn", 0, 3600, 20), radar_max_seconds: n("atkRadarMax", 0, 7200, 1800), travel_seconds_per_point: n("atkPerPoint", 0.05, 5, 0.35),
     min_travel_seconds: n("atkMin", 5, 3600, 30), max_travel_seconds: n("atkMax", 30, 7200, 900), default_travel_seconds: n("atkDefault", 30, 7200, 300), auto_after_arrival_seconds: n("atkAuto", 30, 3600, 120) };
   await check(sb.rpc("admin_set_config", { p_key: "attack", p_value: value }));
   toast("Zapisano ustawienia marszów i ostrzeżeń");
