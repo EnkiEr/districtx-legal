@@ -284,6 +284,14 @@
         <div><label for="tunPlayerPower">Współczynnik mocy gracza (%)</label><input id="tunPlayerPower" type="number" min="25" max="300" step="5" placeholder="100"></div>
         <div><label for="tunLossReduce">Redukcja jednostek do regeneracji (%)</label><input id="tunLossReduce" type="number" min="0" max="90" step="5" placeholder="30"></div>
       </div>
+      <h3 style="margin:14px 0 6px">Natarcia sojuszu</h3>
+      <div class="row">
+        <div><label for="rlyPerLevel">Bonus ataku za poziom „Doktryny natarcia” (%)</label><input id="rlyPerLevel" type="number" min="0" max="20" step="0.5" placeholder="3"></div>
+        <div><label for="rlyCap">Maks. członków sojuszu na jednego gracza</label><input id="rlyCap" type="number" min="1" max="10" placeholder="2"></div>
+        <div><label for="rlyMatch">Dopasowanie siły celu (% siły atakującego)</label><input id="rlyMatch" type="number" min="50" max="300" step="5" placeholder="110"></div>
+        <div style="flex:0 0 auto;align-self:flex-end"><button id="rlySave">Zapisz natarcia</button></div>
+      </div>
+      <p class="muted">Bonus liczy serwer przy dołączeniu do natarcia (poziom badania × wartość, maks. 10 poziomów). Przy natarciu na region lub sojusz uczestnik dostaje najsilniejszego obrońcę o sile do podanego % własnej siły; gdy takiego brak – najsłabszego z pozostałych.</p>
       <p class="muted">Moc gracza: mnoży zdrowie, atak i obronę bossa, bohaterów i maszyn wszystkich graczy w całej grze (100% = obecny balans, który ma już wbudowane +30%; 120 = jeszcze mocniej, 80 = słabiej). Redukcja: o tyle procent mniej maszyn pada w PvP i trafia do regeneracji w Warsztacie naprawczym (domyślnie 30%, max 90).</p>
       <div class="row" style="margin-top:8px">
         <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
@@ -677,6 +685,10 @@ async function loadTuning() {
   $("tunCrMission").value = val("crystals_mission"); $("tunCrMob").value = val("crystals_mob");
   ["8","24","48","72"].forEach(h => $("tunSh" + h).value = tuning.shield_prices?.[h] ?? "");
   $("tunRaidsOn").value = tuning.raids_enabled === false ? "off" : ""; $("tunRaidPower").value = val("raid_power_percent"); $("tunRaidHours").value = val("raid_interval_hours");
+  sb.from("live_config").select("value").eq("key", "rally").then(({ data }) => {
+    const r = data?.[0]?.value || {};
+    $("rlyPerLevel").value = r.attack_percent_per_level ?? ""; $("rlyCap").value = r.max_attackers_per_player ?? ""; $("rlyMatch").value = r.match_power_percent ?? "";
+  });
   $("tunPlayerPower").value = val("player_power_percent"); $("tunLossReduce").value = val("unit_loss_reduction_percent");
   const current = $("tunBuilding").value;
   $("tunBuilding").innerHTML = tunDefaults.buildings.map(b => `<option value="${esc(b.id)}">${esc(b.name)}${tuning.build_times?.[b.id] ? " •" : ""}</option>`).join("");
@@ -722,6 +734,13 @@ $("tunSave").onclick = async () => {
   Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
   await check(sb.rpc("admin_set_config", { p_key: "tuning", p_value: value }));
   toast("Zapisano — gracze dostaną zmiany przy synchronizacji"); loadTuning(); loadConfig();
+};
+
+$("rlySave").onclick = async () => {
+  const n = (id, lo, hi, d) => { const v = parseFloat($(id).value); return Number.isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
+  const value = { attack_percent_per_level: n("rlyPerLevel", 0, 20, 3), max_attackers_per_player: Math.round(n("rlyCap", 1, 10, 2)), match_power_percent: n("rlyMatch", 50, 300, 110) };
+  await check(sb.rpc("admin_set_config", { p_key: "rally", p_value: value }));
+  toast("Zapisano ustawienia natarć");
 };
 
 // ---------- AI players ----------
