@@ -1394,11 +1394,37 @@ async function showPlayer(id) {
       <div><label>Nadaj subskrypcję</label><select id="pdEnt">${ENTITLEMENTS.map(e => `<option>${e}</option>`).join("")}</select></div>
       <div><label>Na ile dni (0 = bezterminowo)</label><input id="pdDays" type="number" min="0" value="7"></div>
       <div style="flex:0 0 auto"><button id="pdGrant">Nadaj</button></div>
+    </div>
+    <h3 style="margin:14px 0 6px">Kredyty sojuszu</h3>
+    <div id="pdCredits" class="muted">Wczytuję…</div>
+    <div class="row">
+      <div><label>Doładuj kredyty (ujemne = odejmij)</label><input id="pdCrAmount" type="number" step="10" value="150"></div>
+      <div><label>Powód (np. nieudany zakup przyspieszenia)</label><input id="pdCrNote" placeholder="Zwrot za potwierdzony błąd sklepu"></div>
+      <div style="flex:0 0 auto"><button id="pdCrGrant">Doładuj</button></div>
     </div>`;
+  const loadCredits = async () => {
+    const c = await check(sb.rpc("admin_alliance_credits", { p_user: id }));
+    const names = { build_speed_3600: "Przyspieszenie budowy 1 h", research_speed_3600: "Przyspieszenie badań 1 h", repair_speed_3600: "Przyspieszenie odnowy 1 h",
+      shield_8h: "Tarcza 8 h", resource_pack: "Paczka surowców", teleport_any: "Teleport", teleport_leader: "Teleport do lidera" };
+    const buys = (c.purchases || []).map(b => `<tr><td>${when(b.created_at)}</td><td>${esc(names[b.item] || b.item)}</td><td>−${b.price}</td><td>${b.credits_left}</td></tr>`).join("")
+      || `<tr><td colspan="4" class="muted">Brak zakupów w dzienniku (zapisywane od 21.10.2026)</td></tr>`;
+    const grants = (c.grants || []).map(g => `<tr><td>${when(g.created_at)}</td><td>${g.amount > 0 ? "+" : ""}${g.amount}</td><td colspan="2">${esc(g.note || "")}</td></tr>`).join("");
+    $("pdCredits").innerHTML = `<p>Stan: <b>${c.credits}</b> kredytów</p>
+      <table><thead><tr><th>Kiedy</th><th>Zakup</th><th>Cena</th><th>Zostało</th></tr></thead><tbody>${buys}</tbody></table>
+      ${grants ? `<p class="muted" style="margin-top:8px">Doładowania od zespołu</p><table><tbody>${grants}</tbody></table>` : ""}`;
+  };
+  loadCredits().catch(() => { $("pdCredits").textContent = "Nie udało się wczytać kredytów."; });
   $("playerDetail").classList.remove("hidden");
   $("pdClose").onclick = () => $("playerDetail").classList.add("hidden");
   $("pdShieldSet").onclick = async () => { await check(sb.rpc("admin_set_shield", { p_user: id, p_hours: parseFloat($("pdShield").value || "0") })); toast("Ochrona ustawiona"); showPlayer(id); };
   $("pdRename").onclick = async () => { await check(sb.rpc("admin_rename_player", { p_user: id, p_name: $("pdName").value })); toast("Nazwa zmieniona"); showPlayer(id); searchPlayers(); };
+  $("pdCrGrant").onclick = async () => {
+    const amount = parseInt($("pdCrAmount").value || "0", 10);
+    if (!amount) return toast("Podaj liczbę kredytów", true);
+    if (!confirm(`${amount > 0 ? "Doładować" : "Odjąć"} ${Math.abs(amount)} kredytów sojuszu graczowi ${p.display_name}?`)) return;
+    const total = await check(sb.rpc("admin_grant_alliance_credits", { p_user: id, p_amount: amount, p_note: $("pdCrNote").value.trim() || null }));
+    toast(`Zapisano — stan: ${total} kredytów`); loadCredits();
+  };
   $("pdGrant").onclick = async () => { await check(sb.rpc("admin_grant_entitlement", { p_user: id, p_entitlement: $("pdEnt").value, p_days: parseInt($("pdDays").value || "0", 10) })); toast("Nadano"); showPlayer(id); };
   $("playerDetail").querySelectorAll("[data-revoke]").forEach(a => a.onclick = async (ev) => {
     ev.preventDefault(); if (!confirm("Odebrać " + a.dataset.revoke + "?")) return;
