@@ -284,6 +284,17 @@
         <div><label for="tunPlayerPower">Współczynnik mocy gracza (%)</label><input id="tunPlayerPower" type="number" min="25" max="300" step="5" placeholder="100"></div>
         <div><label for="tunLossReduce">Redukcja jednostek do regeneracji (%)</label><input id="tunLossReduce" type="number" min="0" max="90" step="5" placeholder="30"></div>
       </div>
+      <p class="muted">Moc gracza: mnoży zdrowie, atak i obronę bossa, bohaterów i maszyn wszystkich graczy w całej grze (100% = obecny balans, który ma już wbudowane +30%; 120 = jeszcze mocniej, 80 = słabiej). Redukcja: o tyle procent mniej maszyn pada w PvP i trafia do regeneracji w Warsztacie naprawczym (domyślnie 30%, max 90).</p>
+      <div class="row" style="margin-top:8px">
+        <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="tunResetBuilding">Przywróć domyślne dla budynku</button></div>
+        <div style="flex:0 0 auto"><button id="tunSave">Zapisz ustawienia</button></div>
+      </div>
+      <p class="muted">Czas budowy poziomu podawaj jako 30s, 15m, 2h, 1d 4h albo liczbę sekund. Puste = domyślny. Badania sojuszu i boosty skracają go dalej.</p>
+      <div class="scroll" style="max-height:420px"><table id="tunLevels"><thead><tr><th>Poziom</th><th>Domyślnie</th><th>Ustawione</th></tr></thead><tbody></tbody></table></div>
+    </section>
+    <section>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Wojna i sojusze</h2></div>
       <h3 style="margin:14px 0 6px">Natarcia sojuszu</h3>
       <div class="row">
         <div><label for="rlyPerLevel">Bonus ataku za poziom „Doktryny natarcia” (%)</label><input id="rlyPerLevel" type="number" min="0" max="20" step="0.5" placeholder="3"></div>
@@ -310,14 +321,6 @@
         <div style="flex:0 0 auto;align-self:flex-end"><button id="atkSave">Zapisz marsze</button></div>
       </div>
       <p class="muted">Bez badań radaru atakowany dostaje powiadomienie na „Ostrzeżenie” sekund przed uderzeniem (domyślnie 20 s); każdy poziom radaru dodaje więcej (gałąź Wywiad, do 8 min), ale nie więcej niż maks. dodatek. Marsz = odległość × czas na punkt, w granicach min–maks. Jeśli atakujący nie rozpocznie walki po dotarciu, po podanym czasie rozegra się ona sama.</p>
-      <p class="muted">Moc gracza: mnoży zdrowie, atak i obronę bossa, bohaterów i maszyn wszystkich graczy w całej grze (100% = obecny balans, który ma już wbudowane +30%; 120 = jeszcze mocniej, 80 = słabiej). Redukcja: o tyle procent mniej maszyn pada w PvP i trafia do regeneracji w Warsztacie naprawczym (domyślnie 30%, max 90).</p>
-      <div class="row" style="margin-top:8px">
-        <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
-        <div style="flex:0 0 auto"><button class="ghost" id="tunResetBuilding">Przywróć domyślne dla budynku</button></div>
-        <div style="flex:0 0 auto"><button id="tunSave">Zapisz ustawienia</button></div>
-      </div>
-      <p class="muted">Czas budowy poziomu podawaj jako 30s, 15m, 2h, 1d 4h albo liczbę sekund. Puste = domyślny. Badania sojuszu i boosty skracają go dalej.</p>
-      <div class="scroll" style="max-height:420px"><table id="tunLevels"><thead><tr><th>Poziom</th><th>Domyślnie</th><th>Ustawione</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section id="bots">
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🤖 Gracze AI</h2><button class="ghost" style="flex:0 0 auto" id="botReload">Odśwież</button></div>
@@ -1539,7 +1542,7 @@ start();
     { id:"events", ic:"🎉", name:"Wydarzenia", sub:"Boss świata, kalendarz, promocje i push", color:"#ffb547",
       match:["Agent GM","Komunikat wydarzenia","Wydarzenia na żywo","Kalendarz","Promocja","Kampanie push"] },
     { id:"game", ic:"⚙️", name:"Gra", sub:"Balans, czasy, gracze AI, VIP i konfiguracja", color:"#b28bff",
-      match:["Przyspieszenia","Gracze AI","Progi VIP","Ekonomia","Konfiguracja"] },
+      match:["Przyspieszenia","Wojna i sojusze","Gracze AI","Progi VIP","Ekonomia","Konfiguracja"] },
     { id:"mod", ic:"🛡️", name:"Moderacja", sub:"Czat, filtr, sporne walki i kopie", color:"#ff5d6c",
       match:["Czat i moderacja","Filtr wulgaryzmów","Sporne wyniki","Kopie zapasowe"] }
   ];
