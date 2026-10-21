@@ -288,10 +288,21 @@
       <div class="row">
         <div><label for="rlyPerLevel">Bonus ataku za poziom „Doktryny natarcia” (%)</label><input id="rlyPerLevel" type="number" min="0" max="20" step="0.5" placeholder="3"></div>
         <div><label for="rlyCap">Maks. członków sojuszu na jednego gracza</label><input id="rlyCap" type="number" min="1" max="10" placeholder="2"></div>
-        <div><label for="rlyMatch">Dopasowanie siły celu (% siły atakującego)</label><input id="rlyMatch" type="number" min="50" max="300" step="5" placeholder="110"></div>
         <div style="flex:0 0 auto;align-self:flex-end"><button id="rlySave">Zapisz natarcia</button></div>
       </div>
-      <p class="muted">Bonus liczy serwer przy dołączeniu do natarcia (poziom badania × wartość, maks. 10 poziomów). Przy natarciu na region lub sojusz uczestnik dostaje najsilniejszego obrońcę o sile do podanego % własnej siły; gdy takiego brak – najsłabszego z pozostałych.</p>
+      <p class="muted">Bonus liczy serwer przy dołączeniu do natarcia (poziom badania × wartość, maks. 10 poziomów). Natarcie na gracza: dołączyć może najwyżej tylu członków, ile wynosi limit. Natarcie na sojusz/region: dołącza każdy, a na jednego przeciwnika przypada najwyżej limit (fale po kolei); po dołączeniu członek dostaje najbardziej wyrównanego przeciwnika, a ogłaszający może przestawić pary ręcznie lub automatycznie w aplikacji.</p>
+      <h3 style="margin:14px 0 6px">Marsze i ostrzeżenia o ataku</h3>
+      <div class="row">
+        <div><label for="atkWarn">Ostrzeżenie przed atakiem (s)</label><input id="atkWarn" type="number" min="0" max="3600" placeholder="60"></div>
+        <div><label for="atkRadarMax">Maks. dodatek z radaru (s)</label><input id="atkRadarMax" type="number" min="0" max="7200" placeholder="1800"></div>
+        <div><label for="atkPerPoint">Czas marszu na punkt mapy (s)</label><input id="atkPerPoint" type="number" min="0.05" max="5" step="0.05" placeholder="0.35"></div>
+        <div><label for="atkMin">Marsz min. (s)</label><input id="atkMin" type="number" min="5" max="3600" placeholder="30"></div>
+        <div><label for="atkMax">Marsz maks. (s)</label><input id="atkMax" type="number" min="30" max="7200" placeholder="900"></div>
+        <div><label for="atkDefault">Marsz, gdy pozycja nieznana (s)</label><input id="atkDefault" type="number" min="30" max="7200" placeholder="300"></div>
+        <div><label for="atkAuto">Walka automatyczna po dotarciu po (s)</label><input id="atkAuto" type="number" min="30" max="3600" placeholder="120"></div>
+        <div style="flex:0 0 auto;align-self:flex-end"><button id="atkSave">Zapisz marsze</button></div>
+      </div>
+      <p class="muted">Atakowany dostaje powiadomienie na „Ostrzeżenie” sekund przed uderzeniem, plus tyle, ile daje jego radar (gałąź Wywiad, do 8 min), ale nie więcej niż maks. dodatek. Marsz = odległość × czas na punkt, w granicach min–maks. Jeśli atakujący nie rozpocznie walki po dotarciu, po podanym czasie rozegra się ona sama.</p>
       <p class="muted">Moc gracza: mnoży zdrowie, atak i obronę bossa, bohaterów i maszyn wszystkich graczy w całej grze (100% = obecny balans, który ma już wbudowane +30%; 120 = jeszcze mocniej, 80 = słabiej). Redukcja: o tyle procent mniej maszyn pada w PvP i trafia do regeneracji w Warsztacie naprawczym (domyślnie 30%, max 90).</p>
       <div class="row" style="margin-top:8px">
         <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
@@ -685,9 +696,14 @@ async function loadTuning() {
   $("tunCrMission").value = val("crystals_mission"); $("tunCrMob").value = val("crystals_mob");
   ["8","24","48","72"].forEach(h => $("tunSh" + h).value = tuning.shield_prices?.[h] ?? "");
   $("tunRaidsOn").value = tuning.raids_enabled === false ? "off" : ""; $("tunRaidPower").value = val("raid_power_percent"); $("tunRaidHours").value = val("raid_interval_hours");
+  sb.from("live_config").select("value").eq("key", "attack").then(({ data }) => {
+    const a = data?.[0]?.value || {};
+    $("atkWarn").value = a.warning_seconds ?? ""; $("atkRadarMax").value = a.radar_max_seconds ?? ""; $("atkPerPoint").value = a.travel_seconds_per_point ?? "";
+    $("atkMin").value = a.min_travel_seconds ?? ""; $("atkMax").value = a.max_travel_seconds ?? ""; $("atkDefault").value = a.default_travel_seconds ?? ""; $("atkAuto").value = a.auto_after_arrival_seconds ?? "";
+  });
   sb.from("live_config").select("value").eq("key", "rally").then(({ data }) => {
     const r = data?.[0]?.value || {};
-    $("rlyPerLevel").value = r.attack_percent_per_level ?? ""; $("rlyCap").value = r.max_attackers_per_player ?? ""; $("rlyMatch").value = r.match_power_percent ?? "";
+    $("rlyPerLevel").value = r.attack_percent_per_level ?? ""; $("rlyCap").value = r.max_attackers_per_player ?? "";
   });
   $("tunPlayerPower").value = val("player_power_percent"); $("tunLossReduce").value = val("unit_loss_reduction_percent");
   const current = $("tunBuilding").value;
@@ -736,9 +752,16 @@ $("tunSave").onclick = async () => {
   toast("Zapisano — gracze dostaną zmiany przy synchronizacji"); loadTuning(); loadConfig();
 };
 
+$("atkSave").onclick = async () => {
+  const n = (id, lo, hi, d) => { const v = parseFloat($(id).value); return Number.isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
+  const value = { warning_seconds: n("atkWarn", 0, 3600, 60), radar_max_seconds: n("atkRadarMax", 0, 7200, 1800), travel_seconds_per_point: n("atkPerPoint", 0.05, 5, 0.35),
+    min_travel_seconds: n("atkMin", 5, 3600, 30), max_travel_seconds: n("atkMax", 30, 7200, 900), default_travel_seconds: n("atkDefault", 30, 7200, 300), auto_after_arrival_seconds: n("atkAuto", 30, 3600, 120) };
+  await check(sb.rpc("admin_set_config", { p_key: "attack", p_value: value }));
+  toast("Zapisano ustawienia marszów i ostrzeżeń");
+};
 $("rlySave").onclick = async () => {
   const n = (id, lo, hi, d) => { const v = parseFloat($(id).value); return Number.isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
-  const value = { attack_percent_per_level: n("rlyPerLevel", 0, 20, 3), max_attackers_per_player: Math.round(n("rlyCap", 1, 10, 2)), match_power_percent: n("rlyMatch", 50, 300, 110) };
+  const value = { attack_percent_per_level: n("rlyPerLevel", 0, 20, 3), max_attackers_per_player: Math.round(n("rlyCap", 1, 10, 2)) };
   await check(sb.rpc("admin_set_config", { p_key: "rally", p_value: value }));
   toast("Zapisano ustawienia natarć");
 };
