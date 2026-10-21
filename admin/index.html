@@ -279,6 +279,12 @@
         <div><label for="tunRaidHours">Co ile godzin najazd</label><input id="tunRaidHours" type="number" min="0.25" step="0.25" placeholder="8"></div>
       </div>
       <p class="muted">Siła 100% = wartość domyślna (rośnie z poziomem kwatery). 150 = mocniejsze moby, 50 = słabsze. Wyłączone najazdy nie nadrabiają się po ponownym włączeniu.</p>
+      <h3 style="margin:14px 0 6px">Balans siły graczy</h3>
+      <div class="row">
+        <div><label for="tunPlayerPower">Współczynnik mocy gracza (%)</label><input id="tunPlayerPower" type="number" min="25" max="300" step="5" placeholder="100"></div>
+        <div><label for="tunLossReduce">Redukcja jednostek do regeneracji (%)</label><input id="tunLossReduce" type="number" min="0" max="90" step="5" placeholder="30"></div>
+      </div>
+      <p class="muted">Moc gracza: mnoży zdrowie, atak i obronę bossa, bohaterów i maszyn wszystkich graczy w całej grze (100% = obecny balans, który ma już wbudowane +30%; 120 = jeszcze mocniej, 80 = słabiej). Redukcja: o tyle procent mniej maszyn pada w PvP i trafia do regeneracji w Warsztacie naprawczym (domyślnie 30%, max 90).</p>
       <div class="row" style="margin-top:8px">
         <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
         <div style="flex:0 0 auto"><button class="ghost" id="tunResetBuilding">Przywróć domyślne dla budynku</button></div>
@@ -362,13 +368,25 @@
     </section>
     <section>
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Kopie zapasowe</h2><button class="ghost" style="flex:0 0 auto" id="bkReload">Odśwież</button></div>
-      <p class="muted">Kopia zawiera wszystkie tabele gry (gracze, zapisy, sojusze, czat, zakupy, ustawienia) w jednym pliku JSON. Co noc o 4:15 (czasu polskiego) baza robi kopię automatycznie i trzyma ją 14 dni. Pobieraj kopię do pliku raz w tygodniu – to jedyna kopia poza serwerem na darmowym planie.</p>
+      <p class="muted"><b>Pełna kopia bazy (SQL)</b> – struktura (tabele, funkcje, wyzwalacze, zasady RLS, zadania cron) i wszystkie dane z kontami graczy w jednym pliku. Przywrócenie: Supabase → SQL Editor → wklej plik → Run (najlepiej w świeżym projekcie). Plik zawiera dane osobowe – trzymaj go bezpiecznie. Pliki w Storage nie wchodzą do kopii.</p>
+      <div class="row" style="align-items:flex-end">
+        <div><label for="bkTarget">Gdzie zapisać</label>
+          <select id="bkTarget"><option value="download">Pobierz plik na ten komputer (np. do iCloud / Google Drive / Dropbox)</option><option value="storage">Chmura Supabase Storage (prywatny folder „backups”)</option><option value="both">Pobierz i zapisz w chmurze</option></select></div>
+        <div style="flex:0 0 auto"><button id="bkSql">Zrób pełną kopię bazy</button></div>
+      </div>
+      <div id="bkCloud" class="muted" style="margin-top:6px"></div>
+      <p class="muted" style="margin-top:14px"><b>Kopie automatyczne (JSON)</b> – co noc o 4:15 baza robi kopię wszystkich tabel i trzyma ją 14 dni.</p>
       <div class="row">
-        <div style="flex:0 0 auto"><button id="bkDownload">Pobierz pełną kopię teraz</button></div>
-        <div style="flex:0 0 auto"><button class="ghost" id="bkNow">Zapisz kopię w chmurze</button></div>
-        <div style="flex:0 0 auto"><label class="ghost" style="display:inline-block;padding:8px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer">Wgraj ustawienia z pliku<input id="bkRestore" type="file" accept="application/json,.json" style="display:none"></label></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="bkDownload">Pobierz kopię JSON teraz</button></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="bkNow">Zapisz kopię JSON w bazie</button></div>
       </div>
       <div class="scroll" style="margin-top:12px"><table id="backups"><thead><tr><th>Data</th><th>Rodzaj</th><th>Rozmiar</th><th></th></tr></thead><tbody></tbody></table></div>
+      <h3 style="margin:16px 0 6px">Ustawienia panelu</h3>
+      <p class="muted">Wszystkie ustawienia gry z panelu (konfiguracja na żywo: ekonomia, VIP, przyspieszenia, boty, pasek wydarzeń, współczynniki…) w pliku JSON. „Wgraj ustawienia z pliku” przyjmuje ten plik albo kopię JSON (wtedy przywraca też produkty sklepu). Dane graczy zostają bez zmian.</p>
+      <div class="row">
+        <div style="flex:0 0 auto"><button class="ghost" id="cfgExport">Pobierz ustawienia (JSON)</button></div>
+        <div style="flex:0 0 auto"><label class="ghost" style="display:inline-block;padding:8px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer">Wgraj ustawienia z pliku<input id="bkRestore" type="file" accept="application/json,.json" style="display:none"></label></div>
+      </div>
     </section>
     <section>
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Konta z bety (TestFlight)</h2><button class="ghost" style="flex:0 0 auto" id="betaReload">Odśwież</button></div>
@@ -549,7 +567,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -659,6 +677,7 @@ async function loadTuning() {
   $("tunCrMission").value = val("crystals_mission"); $("tunCrMob").value = val("crystals_mob");
   ["8","24","48","72"].forEach(h => $("tunSh" + h).value = tuning.shield_prices?.[h] ?? "");
   $("tunRaidsOn").value = tuning.raids_enabled === false ? "off" : ""; $("tunRaidPower").value = val("raid_power_percent"); $("tunRaidHours").value = val("raid_interval_hours");
+  $("tunPlayerPower").value = val("player_power_percent"); $("tunLossReduce").value = val("unit_loss_reduction_percent");
   const current = $("tunBuilding").value;
   $("tunBuilding").innerHTML = tunDefaults.buildings.map(b => `<option value="${esc(b.id)}">${esc(b.name)}${tuning.build_times?.[b.id] ? " •" : ""}</option>`).join("");
   if (current) $("tunBuilding").value = current;
@@ -697,6 +716,8 @@ $("tunSave").onclick = async () => {
     teleport_price: num("tunTeleport"), crystals_boss_attack: num("tunCrBoss"), crystals_mission: num("tunCrMission"), crystals_mob: num("tunCrMob"),
     shield_prices: (() => { const o = {}; ["8","24","48","72"].forEach(h => { const v = num("tunSh" + h); if (v !== undefined) o[h] = v; }); return Object.keys(o).length ? o : undefined; })(),
     raids_enabled: $("tunRaidsOn").value === "off" ? false : undefined, raid_power_percent: num("tunRaidPower"),
+    player_power_percent: $("tunPlayerPower").value === "" ? undefined : Math.min(300, Math.max(25, parseInt($("tunPlayerPower").value, 10))),
+    unit_loss_reduction_percent: $("tunLossReduce").value === "" ? undefined : Math.min(90, Math.max(0, parseInt($("tunLossReduce").value, 10))),
     raid_interval_hours: $("tunRaidHours").value === "" ? undefined : Math.max(0.25, parseFloat($("tunRaidHours").value)), build_times: Object.keys(times).length ? times : undefined };
   Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
   await check(sb.rpc("admin_set_config", { p_key: "tuning", p_value: value }));
@@ -790,13 +811,48 @@ async function loadBackups() {
   const rows = await check(sb.rpc("admin_list_backups"));
   $("backups").querySelector("tbody").innerHTML = rows.map(b => `<tr><td>${when(b.created_at)}</td><td>${b.kind === "daily" ? "automatyczna" : "ręczna"}</td><td>${fmtSize(b.size_bytes)}</td><td><button class="ghost" data-bk="${b.id}" data-at="${esc(b.created_at)}">Pobierz</button></td></tr>`).join("") || `<tr><td colspan="4" class="muted">Brak kopii</td></tr>`;
 }
-$("bkReload").onclick = () => loadBackups().catch(() => {});
+$("bkReload").onclick = () => { loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); };
+function saveText(text, name, type) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+const bkStamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+async function loadCloudBackups() {
+  const { data, error } = await sb.storage.from("backups").list("", { limit: 20, sortBy: { column: "created_at", order: "desc" } });
+  if (error) { $("bkCloud").textContent = ""; return; }
+  const files = (data || []).filter(f => f.name.endsWith(".sql"));
+  $("bkCloud").innerHTML = files.length ? "W chmurze: " + files.map(f => `<a href="#" data-cloud="${esc(f.name)}" style="color:var(--accent)">${esc(f.name)}</a> (${fmtSize(f.metadata?.size || 0)})`).join(" · ") : "W chmurze Supabase Storage nie ma jeszcze pełnej kopii SQL.";
+}
+$("bkCloud").onclick = async (e) => {
+  const a = e.target.closest("[data-cloud]"); if (!a) return; e.preventDefault();
+  const { data, error } = await sb.storage.from("backups").download(a.dataset.cloud);
+  if (error) return toast(error.message, true);
+  saveText(await data.text(), a.dataset.cloud, "application/sql");
+};
+$("bkSql").onclick = async () => {
+  const btn = $("bkSql"); btn.disabled = true; btn.textContent = "Tworzę kopię…";
+  try {
+    const sql = await check(sb.rpc("admin_backup_sql"));
+    const name = `districtx-backup-${bkStamp()}.sql`, target = $("bkTarget").value;
+    if (target !== "storage") saveText(sql, name, "application/sql");
+    if (target !== "download") {
+      const { error } = await sb.storage.from("backups").upload(name, new Blob([sql], { type: "application/sql" }));
+      if (error) throw error;
+    }
+    toast(`Pełna kopia gotowa (${fmtSize(sql.length)})`); loadCloudBackups().catch(() => {});
+  } catch (err) { toast("Kopia nie powiodła się: " + (err.message || err), true); }
+  finally { btn.disabled = false; btn.textContent = "Zrób pełną kopię bazy"; }
+};
+$("cfgExport").onclick = async () => {
+  const cfg = await check(sb.rpc("admin_export_config"));
+  saveJson({ type: "districtx-live-config", exported_at: new Date().toISOString(), config: cfg }, `districtx-ustawienia-${bkStamp()}.json`);
+};
 $("bkDownload").onclick = async () => {
   $("bkDownload").disabled = true;
   try { const data = await check(sb.rpc("admin_export")); saveJson(data, `districtx-backup-${new Date().toISOString().slice(0, 10)}.json`); toast("Kopia pobrana"); }
   finally { $("bkDownload").disabled = false; }
 };
-$("bkNow").onclick = async () => { await check(sb.rpc("admin_backup_now")); toast("Kopia zapisana w chmurze"); loadBackups(); };
+$("bkNow").onclick = async () => { await check(sb.rpc("admin_backup_now")); toast("Kopia JSON zapisana w bazie"); loadBackups(); };
 $("backups").onclick = async (e) => {
   const b = e.target.closest("button[data-bk]"); if (!b) return;
   const data = await check(sb.rpc("admin_get_backup", { p_id: Number(b.dataset.bk) }));
@@ -804,11 +860,19 @@ $("backups").onclick = async (e) => {
 };
 $("bkRestore").onchange = async (e) => {
   const file = e.target.files[0]; e.target.value = ""; if (!file) return;
-  let data; try { data = JSON.parse(await file.text()); } catch { return toast("To nie jest plik kopii", true); }
-  if (data.app !== "districtx" || !data.tables) return toast("To nie jest kopia DistrictX", true);
-  if (!confirm(`Przywrócić ustawienia z kopii z ${when(data.created_at)}? Zostaną nadpisane: konfiguracja na żywo (VIP, przyspieszenia, czasy budowy, promocje, boosty) i produkty sklepu. Dane graczy zostają bez zmian.`)) return;
+  let data; try { data = JSON.parse(await file.text()); } catch { return toast("To nie jest poprawny plik JSON", true); }
+  const reloadAll = () => { loadConfig(); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadPromo().catch(() => {}); loadBanner().catch(() => {}); };
+  if (data.type === "districtx-live-config" && data.config) {
+    const keys = Object.keys(data.config);
+    if (!keys.length) return toast("Plik nie zawiera ustawień", true);
+    if (!confirm(`Wgrać ${keys.length} ustawień z ${when(data.exported_at)} (${keys.join(", ")})? Nadpiszą obecne wartości.`)) return;
+    for (const k of keys) await check(sb.rpc("admin_set_config", { p_key: k, p_value: data.config[k] }));
+    toast(`Wgrano ${keys.length} ustawień`); return reloadAll();
+  }
+  if (data.app !== "districtx" || !data.tables) return toast("To nie jest plik ustawień ani kopia DistrictX", true);
+  if (!confirm(`Przywrócić ustawienia z kopii z ${when(data.created_at)}? Zostaną nadpisane: konfiguracja na żywo i produkty sklepu. Dane graczy zostają bez zmian.`)) return;
   const r = await check(sb.rpc("admin_restore_settings", { p_data: data }));
-  toast(`Przywrócono: ${r.live_config} ustawień, ${r.store_products} produktów`); loadConfig(); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadPromo().catch(() => {});
+  toast(`Przywrócono: ${r.live_config} ustawień, ${r.store_products} produktów`); reloadAll();
 };
 
 // ---------- Beta accounts ----------
@@ -934,6 +998,7 @@ $("bannerSave").onclick = async () => {
   toast("Zapisano – gracze dostaną to przy najbliższej synchronizacji (do 5 min)"); loadBanner();
 };
 $("refreshStats").onclick = loadStats;
+
 
 async function loadConfig() {
   configRows = await check(sb.from("live_config").select("key,value,updated_at").order("key"));
