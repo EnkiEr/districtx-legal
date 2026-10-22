@@ -290,6 +290,13 @@
       </div>
       <p class="muted">Siła mobów: przeciwnicy w kampanii, treningach, moby i bossowie na mapie oraz najazdy rosną automatycznie razem z tym, ile mocy wojsko daje dowódcom; ten procent mnoży jeszcze ten wynik (100% = domyślnie, 120 = trudniej, 80 = łatwiej). Limit dowodzenia: ile jednostek prowadzi boss i bohater na 1. poziomie (domyślnie 5); wszystkie wyższe poziomy rosną proporcjonalnie (np. 10 = dwa razy więcej na każdym poziomie).</p>
       <p class="muted">Moc gracza: mnoży zdrowie, atak i obronę bossa, bohaterów i maszyn wszystkich graczy w całej grze (100% = obecny balans, który ma już wbudowane +30%; 120 = jeszcze mocniej, 80 = słabiej). Redukcja: o tyle procent mniej maszyn pada w PvP i trafia do regeneracji w Warsztacie naprawczym (domyślnie 30%, max 90).</p>
+      <h3 style="margin:14px 0 6px">Surowce na start</h3>
+      <div class="row" id="tunStartRow"></div>
+      <p class="muted">Ile surowców dostaje nowy gracz na początku gry (puste = wartość domyślna z gry, pokazana szarym). Działa dla kont założonych w ciągu ostatniej doby, które nie rozbudowały jeszcze Kwatery; starsze konta nie są zmieniane.</p>
+      <h3 style="margin:14px 0 6px">Prezenty od zespołu za poziom Kwatery</h3>
+      <div class="scroll"><table id="tunGifts"><thead><tr><th>Włączony</th><th>Poziom Kwatery</th><th>Kryształy</th><th>Kredyty</th><th>Stal</th><th>Energia</th><th>Dane</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div style="margin:6px 0"><button class="ghost" id="tunGiftAdd">+ Dodaj prezent</button></div>
+      <p class="muted">Gdy gracz osiągnie dany poziom Kwatery, automatycznie dostaje wpisane surowce i komunikat „Prezent od zespołu DistrictX”. Każdy prezent gracz dostaje raz. Gracze, którzy mają już ten poziom, dostaną prezent przy najbliższej synchronizacji po włączeniu. Wyłączony prezent nie jest wypłacany.</p>
       <div class="row" style="margin-top:8px">
         <div><label for="tunBuilding">Budynek</label><select id="tunBuilding"></select></div>
         <div style="flex:0 0 auto"><button class="ghost" id="tunResetBuilding">Przywróć domyślne dla budynku</button></div>
@@ -726,6 +733,9 @@ async function loadTuning() {
   });
   $("tunPlayerPower").value = val("player_power_percent"); $("tunLossReduce").value = val("unit_loss_reduction_percent");
   $("tunMobPower").value = val("mob_power_percent"); $("tunLeaderCap").value = val("leader_capacity_level1");
+  const startDefaults = { energy: 1200, steel: 1200, data: 600, credits: 1500, crystals: 200 };
+  $("tunStartRow").innerHTML = RES.map(([id, label]) => `<div><label for="tunStart_${id}">${label}</label><input id="tunStart_${id}" type="number" min="0" placeholder="${startDefaults[id] ?? ""}" value="${tuning.starting_resources?.[id] ?? ""}"></div>`).join("");
+  renderGifts(tuning.level_gifts || []);
   const current = $("tunBuilding").value;
   $("tunBuilding").innerHTML = tunDefaults.buildings.map(b => `<option value="${esc(b.id)}">${esc(b.name)}${tuning.build_times?.[b.id] ? " •" : ""}</option>`).join("");
   if (current) $("tunBuilding").value = current;
@@ -756,6 +766,37 @@ $("tunBuilding").onchange = () => {
 };
 $("tunReload").onclick = () => loadTuning().catch(() => {});
 $("tunResetBuilding").onclick = () => { for (const i of $("tunLevels").querySelectorAll("input[data-lvl]")) i.value = ""; };
+function giftRow(g) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><input type="checkbox" class="gOn" ${g.enabled === false ? "" : "checked"}></td>` +
+    `<td><input type="number" class="gLvl" min="1" max="40" style="width:70px" value="${g.level ?? ""}"></td>` +
+    RES.map(([id]) => `<td><input type="number" class="gRes" data-res="${id}" min="0" style="width:90px" value="${g.resources?.[id] ?? ""}"></td>`).join("") +
+    `<td><button class="ghost gDel">Usuń</button></td>`;
+  tr.querySelector(".gDel").onclick = () => tr.remove();
+  return tr;
+}
+function renderGifts(list) {
+  const body = $("tunGifts").querySelector("tbody"); body.innerHTML = "";
+  list.forEach(g => body.appendChild(giftRow(g)));
+}
+$("tunGiftAdd").onclick = () => $("tunGifts").querySelector("tbody").appendChild(giftRow({ level: 3, resources: {} }));
+function readGifts() {
+  const out = [];
+  $("tunGifts").querySelectorAll("tbody tr").forEach(tr => {
+    const level = parseInt(tr.querySelector(".gLvl").value, 10);
+    if (!(level > 0)) return;
+    const resources = {};
+    tr.querySelectorAll(".gRes").forEach(i => { const v = parseInt(i.value, 10); if (v > 0) resources[i.dataset.res] = v; });
+    if (!Object.keys(resources).length) return;
+    out.push({ level, enabled: tr.querySelector(".gOn").checked, resources });
+  });
+  return out.length ? out : undefined;
+}
+function readStart() {
+  const o = {};
+  RES.forEach(([id]) => { const v = $("tunStart_" + id)?.value; if (v !== undefined && v !== "") o[id] = Math.max(0, parseInt(v, 10)); });
+  return Object.keys(o).length ? o : undefined;
+}
 $("tunSave").onclick = async () => {
   let times; try { times = collectTunLevels(); } catch (e) { return toast(e.message, true); }
   const num = (id) => $(id).value === "" ? undefined : Math.max(0, parseInt($(id).value, 10));
@@ -768,6 +809,7 @@ $("tunSave").onclick = async () => {
     unit_loss_reduction_percent: $("tunLossReduce").value === "" ? undefined : Math.min(90, Math.max(0, parseInt($("tunLossReduce").value, 10))),
     mob_power_percent: $("tunMobPower").value === "" ? undefined : Math.min(500, Math.max(10, parseInt($("tunMobPower").value, 10))),
     leader_capacity_level1: $("tunLeaderCap").value === "" ? undefined : Math.min(100, Math.max(1, parseInt($("tunLeaderCap").value, 10))),
+    starting_resources: readStart(), level_gifts: readGifts(),
     raid_interval_hours: $("tunRaidHours").value === "" ? undefined : Math.max(0.25, parseFloat($("tunRaidHours").value)), build_times: Object.keys(times).length ? times : undefined };
   Object.keys(value).forEach(k => value[k] === undefined && delete value[k]);
   await check(sb.rpc("admin_set_config", { p_key: "tuning", p_value: value }));
