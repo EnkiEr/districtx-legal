@@ -1588,7 +1588,7 @@ async function showPlayer(id) {
     </div>`;
   const loadCredits = async () => {
     const c = await check(sb.rpc("admin_alliance_credits", { p_user: id }));
-    const names = { build_speed_3600: "Przyspieszenie budowy 1 h", research_speed_3600: "Przyspieszenie badań 1 h", repair_speed_3600: "Przyspieszenie odnowy 1 h",
+    const names = { build_speed_3600: "Przyspieszenie budowy 1 h", research_speed_3600: "Przyspieszenie badań 1 h", repair_speed_3600: "Przyspieszenie odnowy 1 h", machine_speed_3600: "Przyspieszenie produkcji maszyn 1 h",
       shield_8h: "Tarcza 8 h", resource_pack: "Paczka surowców", teleport_any: "Teleport", teleport_leader: "Teleport do lidera" };
     const buys = (c.purchases || []).map(b => `<tr><td>${when(b.created_at)}</td><td>${esc(names[b.item] || b.item)}</td><td>−${b.price}</td><td>${b.credits_left}</td></tr>`).join("")
       || `<tr><td colspan="4" class="muted">Brak zakupów w dzienniku (zapisywane od 21.10.2026)</td></tr>`;
