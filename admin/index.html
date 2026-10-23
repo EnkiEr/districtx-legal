@@ -108,6 +108,8 @@
     main table:not(.keep) td:is(:has(> select),:has(> div),:has(> label),:has(> textarea)):not([data-label="Akcje"]):not(.acts)::before { display:block; margin-bottom:4px; max-width:none; }
     main table:not(.keep) td [style*="max-width"] { max-width:none !important; }
     main table:not(.keep) td select { width:100%; max-width:100%; }
+    main table:not(.keep) td > label { display:flex !important; align-items:center; gap:8px; }
+    main table:not(.keep) td > label input { width:auto; margin:0; }
     main table:not(.keep) td:is([data-label="Wiadomość"],[data-label="Treść"]) { white-space:pre-wrap; word-break:normal; overflow-wrap:anywhere; font-size:15px; line-height:1.4; }
     main table:not(.keep) td[colspan] { display:block; text-align:center; }
     main table:not(.keep) td.acts, main table:not(.keep) td[data-label="Akcje"] { flex-wrap:wrap; justify-content:flex-start; gap:6px; padding-top:8px; border-top:1px solid var(--line); margin-top:4px; }
