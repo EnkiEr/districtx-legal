@@ -46,7 +46,7 @@
     <button id="t1" class="on" role="tab"></button>
     <button id="t2" role="tab"></button>
   </div>
-  <div class="player"><video id="v" controls playsinline preload="metadata" poster="../waitlist/media/poster.jpg"></video></div>
+  <div class="player"><video id="v" controls playsinline preload="metadata"></video></div>
   <a class="cta" id="cta" href="../waitlist/?src=prolog"></a>
   <p class="note" id="note"></p>
 </main>
@@ -74,7 +74,7 @@ function render(play){
   document.getElementById("cta").textContent=t.cta; document.getElementById("note").textContent=t.note;
   document.getElementById("t1").classList.toggle("on",part===1); document.getElementById("t2").classList.toggle("on",part===2);
   document.getElementById("cta").href="../waitlist/?src=prolog&lang="+encodeURIComponent(lang);
-  const s=src(); if(!v.src.endsWith(s.replace("..",""))){ v.src=s; if(play) v.play().catch(()=>{}); }
+  const s=src(); if(!v.src.includes(s.replace("..",""))){ v.src=s+(play?"":"#t=0.6"); if(play) v.play().catch(()=>{}); }
   document.querySelectorAll("#langs button").forEach(b=>b.classList.toggle("on",b.dataset.l===lang));
 }
 const box=document.getElementById("langs");
