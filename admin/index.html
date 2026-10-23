@@ -154,6 +154,13 @@
   .fb-done { display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-weight:600; cursor:pointer; }
   .fb-done input { width:auto; margin:0; transform:scale(1.25); }
   tr.resolved .fb-done { border-color:#2e7d4f; background:rgba(46,125,79,.15); color:#7ee2a8; }
+  .rev-chart { display:flex; align-items:flex-end; gap:3px; height:160px; padding:8px 4px 22px; border:1px solid var(--line); border-radius:12px; position:relative; overflow-x:auto; }
+  .rev-bar { flex:1 0 8px; min-width:8px; background:linear-gradient(180deg,#ffc54a,#c9871a); border-radius:4px 4px 0 0; position:relative; }
+  .rev-bar.zero { background:var(--line); }
+  .rev-bar span { position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-size:10px; color:var(--muted); white-space:nowrap; }
+  .rev-meter { height:8px; background:var(--line); border-radius:99px; overflow:hidden; min-width:80px; }
+  .rev-meter i { display:block; height:100%; background:linear-gradient(90deg,#3fd0ff,#ffb547); }
+  .tag-best { color:#5ff0a0; font-weight:800; } .tag-weak { color:#ff9b6b; font-weight:800; }
 </style>
 </head>
 <body>
@@ -588,8 +595,22 @@
       <div class="scroll"><table id="announcements"><thead><tr><th>Tytuł</th><th>Od</th><th>Do</th><th></th></tr></thead><tbody></tbody></table></div>
     </section>
 
-    <section>
-      <h2>Ostatnie zakupy</h2>
+    <section id="revSection">
+      <h2>💰 Przychody i zakupy</h2>
+      <div class="row" style="align-items:flex-end">
+        <div><label>Okres</label><select id="revDays"><option value="7">7 dni</option><option value="30" selected>30 dni</option><option value="90">90 dni</option><option value="365">rok</option></select></div>
+        <div><label>Zakupy</label><select id="revEnv"><option value="Production">Prawdziwe (App Store)</option><option value="Sandbox">Testowe (TestFlight)</option><option value="all">Wszystkie</option></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="revReload">Odśwież</button></div>
+      </div>
+      <p class="muted" style="margin:6px 0">Kwoty to ceny referencyjne w USD (cennik niżej). „Na rękę” = po prowizji Apple 15% (program dla małych firm). Dokładne rozliczenia są w App Store Connect → Sales and Trends.</p>
+      <div class="grid" id="revKpi"></div>
+      <h3 style="margin:14px 0 6px">Przychód dzienny</h3>
+      <div id="revChart" class="rev-chart"></div>
+      <h3 style="margin:14px 0 6px">Co się sprzedaje najlepiej, a co słabo</h3>
+      <div class="scroll"><table id="revProducts"><thead><tr><th>Produkt</th><th>Cena</th><th>Sprzedaż</th><th>Przychód</th><th>Zwroty</th><th></th></tr></thead><tbody></tbody></table></div>
+      <h3 style="margin:14px 0 6px">Najwięcej płacący i co mają wykupione</h3>
+      <div class="scroll"><table id="revPayers"><thead><tr><th>Gracz</th><th>Wydał</th><th>Zakupów</th><th>Aktywne teraz</th></tr></thead><tbody></tbody></table></div>
+      <h3 style="margin:14px 0 6px">Ostatnie zakupy</h3>
       <div class="scroll"><table id="purchases"><thead><tr><th>Data</th><th>Produkt</th><th>Gracz</th><th>Środowisko</th><th>Wygasa</th></tr></thead><tbody></tbody></table></div>
     </section>
 
@@ -727,7 +748,7 @@ async function startInner() {
   const { data: isAdmin } = await sb.rpc("is_admin");
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
-  loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
+  loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases(); loadRevenue().catch(() => {});
   loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadProposals().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
@@ -1398,6 +1419,57 @@ $("announcements").onclick = async (e) => {
   loadAnnouncements();
 };
 
+const usd = (n) => "$" + Number(n || 0).toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let revData = null;
+async function loadRevenue() {
+  const d = revData = await check(sb.rpc("admin_revenue", { p_days: Number($("revDays").value), p_env: $("revEnv").value }));
+  const t = d.totals, change = t.prev_gross > 0 ? Math.round((t.gross - t.prev_gross) / t.prev_gross * 100) : null;
+  const conv = t.players ? (t.payers / t.players * 100).toFixed(1) : "0";
+  const tiles = [
+    ["Przychód", usd(t.gross), change === null ? "brak danych do porównania" : (change >= 0 ? "▲ " : "▼ ") + Math.abs(change) + "% vs poprzedni okres"],
+    ["Na rękę (po Apple)", usd(t.net), "szacunek po 15% prowizji"],
+    ["Zakupy", t.purchases, "płacących: " + t.payers],
+    ["Średnio na płacącego", usd(t.payers ? t.gross / t.payers : 0), "ARPPU"],
+    ["Płacący / wszyscy gracze", conv + "%", t.payers + " z " + t.players],
+    ["Aktywne subskrypcje", t.active_subs, "teraz"],
+    ["Zwroty", t.refunds, t.refunds ? usd(t.refunded_usd) + " · " + (t.purchases ? Math.round(t.refunds / t.purchases * 100) : 0) + "% zakupów" : "brak"]];
+  $("revKpi").innerHTML = tiles.map(([a, b, c]) => `<div class="stat"><small>${a}</small><b>${b}</b><small>${esc(String(c))}</small></div>`).join("");
+  const max = Math.max(0.01, ...d.daily.map(x => Number(x.gross)));
+  const every = Math.ceil(d.daily.length / 10);
+  $("revChart").innerHTML = d.daily.map((x, i) => `<div class="rev-bar ${Number(x.gross) ? "" : "zero"}" style="height:${Math.max(2, Number(x.gross) / max * 100)}%" title="${x.d}: ${usd(x.gross)} · ${x.count} zakupów">${i % every === 0 ? `<span>${x.d.slice(5)}</span>` : ""}</div>`).join("");
+  const prods = d.products, top = Math.max(0.01, ...prods.map(p => Number(p.gross)));
+  const sold = prods.filter(p => p.cnt > 0);
+  const best = new Set(sold.slice(0, 3).map(p => p.product_id));
+  const weak = new Set(prods.filter(p => !p.product_id.endsWith(".once")).slice(-5).map(p => p.product_id));
+  $("revProducts").querySelector("tbody").innerHTML = prods.map(p => `<tr>
+    <td><b>${esc(p.name)}</b> ${best.has(p.product_id) ? '<span class="tag-best">★ hit</span>' : weak.has(p.product_id) ? '<span class="tag-weak">▼ słabo</span>' : ""}<div class="muted">${esc(p.kind)}${p.last_at ? " · ostatnio " + when(p.last_at) : " · jeszcze nikt nie kupił"}</div></td>
+    <td>${usd(p.price)}</td><td>${p.cnt}${p.buyers ? `<div class="muted">${p.buyers} graczy</div>` : ""}</td>
+    <td>${usd(p.gross)}<div class="rev-meter"><i style="width:${Number(p.gross) / top * 100}%"></i></div></td>
+    <td>${p.refunds || "—"}</td>
+    <td>${weak.has(p.product_id) || p.cnt === 0 ? `<button class="ghost" data-promo-for="${esc(p.product_id)}">💡 Zaproponuj promocję</button>` : ""}</td></tr>`).join("");
+  $("revPayers").querySelector("tbody").innerHTML = d.payers.map(u => `<tr>
+    <td><a href="#" data-player="${esc(u.user_id)}">${esc(u.name || u.user_id)}</a></td><td>${usd(u.gross)}</td><td>${u.cnt}</td>
+    <td>${(u.active || []).map(a => `<span class="pill">${esc(a)}</span>`).join(" ") || '<span class="muted">nic aktywnego</span>'}</td></tr>`).join("")
+    || `<tr><td colspan="4" class="muted">Brak zakupów w tym okresie</td></tr>`;
+}
+$("revDays").onchange = loadRevenue; $("revEnv").onchange = loadRevenue; $("revReload").onclick = loadRevenue;
+$("revPayers").onclick = (e) => { const a = e.target.closest("[data-player]"); if (!a) return; e.preventDefault(); showPlayer(a.dataset.player); };
+$("revProducts").onclick = async (e) => {
+  const b = e.target.closest("[data-promo-for]"); if (!b || !revData) return;
+  const p = revData.products.find(x => x.product_id === b.dataset.promoFor); if (!p) return;
+  const pct = Number(prompt(`Promocja dla: ${p.name}\nIle procent dodatkowych kryształów w pakietach (gracze dostaną więcej za te same pieniądze)?`, "20")); if (!pct) return;
+  const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(18, 0, 0, 0);
+  const end = new Date(start.getTime() + 48 * 3600e3);
+  const T = (pl, en, hs, ht, ko, ar, he) => ({ pl, en, "zh-Hans": hs, "zh-Hant": ht, ko, ar, he });
+  const title = T(`Bonus kryształów +${pct}%`, `Crystal bonus +${pct}%`, `水晶加赠 +${pct}%`, `水晶加贈 +${pct}%`, `크리스탈 보너스 +${pct}%`, `مكافأة الكريستال +${pct}%`, `בונוס קריסטלים +${pct}%`);
+  const body = T(`Każdy pakiet kryształów daje teraz o ${pct}% więcej – tylko przez 2 dni.`, `Every crystal pack gives ${pct}% more – for 2 days only.`, `所有水晶礼包多送${pct}%，仅限2天。`, `所有水晶禮包多送${pct}%，僅限2天。`, `모든 크리스탈 팩이 2일 동안 ${pct}% 더 지급됩니다.`, `كل حزمة كريستال تمنحك ${pct}% إضافية لمدة يومين فقط.`, `כל חבילת קריסטלים נותנת ${pct}% יותר – רק ליומיים.`);
+  await check(sb.from("promo_proposals").insert({ created_by: "panel: przychody", percent: pct, starts_at: start.toISOString(), ends_at: end.toISOString(),
+    title, push: { title, body }, status: "proposed",
+    rationale: `„${p.name}” sprzedaje się słabo: ${p.cnt} szt. w ostatnich ${revData.days} dniach (${usd(p.gross)}). Bonus kryształów ma ożywić sklep; agent marketingu przygotuje posty z zapowiedzią.`,
+    evidence: { product: p, period_days: revData.days, env: revData.env } }));
+  toast("Propozycja promocji czeka na akceptację w zakładce Marketing → Promocje");
+};
+
 async function loadPurchases() {
   const rows = await check(sb.from("purchases").select("created_at,product_id,user_id,environment,expires_at").order("created_at", { ascending: false }).limit(50));
   $("purchases").querySelector("tbody").innerHTML = rows.map(p => `<tr><td>${when(p.created_at)}</td><td>${esc(p.product_id)}</td>
@@ -1579,6 +1651,8 @@ async function showPlayer(id) {
       <div><label>Na ile dni (0 = bezterminowo)</label><input id="pdDays" type="number" min="0" value="7"></div>
       <div style="flex:0 0 auto"><button id="pdGrant">Nadaj</button></div>
     </div>
+    <h3 style="margin:14px 0 6px">Zakupy i co ma wykupione</h3>
+    <div id="pdBuys" class="muted">Wczytuję…</div>
     <h3 style="margin:14px 0 6px">Kredyty sojuszu</h3>
     <div id="pdCredits" class="muted">Wczytuję…</div>
     <div class="row">
@@ -1598,6 +1672,11 @@ async function showPlayer(id) {
       ${grants ? `<p class="muted" style="margin-top:8px">Doładowania od zespołu</p><table><tbody>${grants}</tbody></table>` : ""}`;
   };
   loadCredits().catch(() => { $("pdCredits").textContent = "Nie udało się wczytać kredytów."; });
+  sb.rpc("admin_player_purchases", { p_user: id }).then(({ data, error }) => {
+    if (error) { $("pdBuys").textContent = "Nie udało się wczytać zakupów."; return; }
+    const total = (data || []).filter(b => !b.revoked_at && b.env === "Production").reduce((a, b) => a + Number(b.price), 0);
+    $("pdBuys").innerHTML = (data || []).length ? `<p>Wydał (prawdziwe zakupy): <b>${usd(total)}</b></p><table><thead><tr><th>Kiedy</th><th>Produkt</th><th>Cena</th><th>Status</th></tr></thead><tbody>${data.map(b => `<tr><td>${when(b.at)}</td><td>${esc(b.name)}${b.env !== "Production" ? ' <span class="muted">(test)</span>' : ""}</td><td>${usd(b.price)}</td><td>${b.revoked_at ? '<span style="color:var(--danger)">zwrot</span>' : b.active ? '<span class="ok">aktywne' + (b.expires_at ? " do " + when(b.expires_at) : "") + "</span>" : '<span class="muted">' + (b.expires_at ? "wygasło" : "zużyte") + "</span>"}</td></tr>`).join("")}</tbody></table>` : "Brak zakupów.";
+  });
   $("playerDetail").classList.remove("hidden");
   $("pdClose").onclick = () => $("playerDetail").classList.add("hidden");
   $("pdShieldSet").onclick = async () => { await check(sb.rpc("admin_set_shield", { p_user: id, p_hours: parseFloat($("pdShield").value || "0") })); toast("Ochrona ustawiona"); showPlayer(id); };
@@ -1717,7 +1796,7 @@ start();
 (function(){
   const CATS = [
     { id:"home", ic:"📊", name:"Pulpit", sub:"Statystyki, zakupy, zgłoszenia i ogłoszenia", color:"#3fd0ff",
-      match:["Statystyki","Do decyzji","Ostatnie zakupy","Opinie i błędy","Ogłoszenia w grze"] },
+      match:["Statystyki","Do decyzji","Przychody i zakupy","Opinie i błędy","Ogłoszenia w grze"] },
     { id:"players", ic:"👥", name:"Gracze", sub:"Gracze, sojusze, beta i prezenty", color:"#4ade80",
       match:["=Gracze","Sojusze","Konta z bety","Chętni do bety","Prezent dla"] },
     { id:"events", ic:"🎉", name:"Wydarzenia", sub:"Boss świata, kalendarz, promocje i push", color:"#ffb547",
