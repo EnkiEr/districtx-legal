@@ -1442,15 +1442,16 @@ async function loadRevenue() {
   const best = new Set(sold.slice(0, 3).map(p => p.product_id));
   const weak = new Set(prods.filter(p => !p.product_id.endsWith(".once")).slice(-5).map(p => p.product_id));
   $("revProducts").querySelector("tbody").innerHTML = prods.map(p => `<tr>
-    <td><b>${esc(p.name)}</b> ${best.has(p.product_id) ? '<span class="tag-best">★ hit</span>' : weak.has(p.product_id) ? '<span class="tag-weak">▼ słabo</span>' : ""}<div class="muted">${esc(p.kind)}${p.last_at ? " · ostatnio " + when(p.last_at) : " · jeszcze nikt nie kupił"}</div></td>
+    <td class="stack"><b>${esc(p.name)}</b> ${best.has(p.product_id) ? '<span class="tag-best">★ hit</span>' : weak.has(p.product_id) ? '<span class="tag-weak">▼ słabo</span>' : ""}<div class="muted">${esc(p.kind)}${p.last_at ? " · ostatnio " + when(p.last_at) : " · jeszcze nikt nie kupił"}</div></td>
     <td>${usd(p.price)}</td><td>${p.cnt}${p.buyers ? `<div class="muted">${p.buyers} graczy</div>` : ""}</td>
     <td>${usd(p.gross)}<div class="rev-meter"><i style="width:${Number(p.gross) / top * 100}%"></i></div></td>
     <td>${p.refunds || "—"}</td>
     <td>${weak.has(p.product_id) || p.cnt === 0 ? `<button class="ghost" data-promo-for="${esc(p.product_id)}">💡 Zaproponuj promocję</button>` : ""}</td></tr>`).join("");
   $("revPayers").querySelector("tbody").innerHTML = d.payers.map(u => `<tr>
     <td><a href="#" data-player="${esc(u.user_id)}">${esc(u.name || u.user_id)}</a></td><td>${usd(u.gross)}</td><td>${u.cnt}</td>
-    <td>${(u.active || []).map(a => `<span class="pill">${esc(a)}</span>`).join(" ") || '<span class="muted">nic aktywnego</span>'}</td></tr>`).join("")
+    <td class="stack">${(u.active || []).map(a => `<span class="pill">${esc(a)}</span>`).join(" ") || '<span class="muted">nic aktywnego</span>'}</td></tr>`).join("")
     || `<tr><td colspan="4" class="muted">Brak zakupów w tym okresie</td></tr>`;
+  if (!window.revOpened) { window.revOpened = true; document.querySelectorAll("#revSection details").forEach(d => d.open = true); }
 }
 $("revDays").onchange = loadRevenue; $("revEnv").onchange = loadRevenue; $("revReload").onclick = loadRevenue;
 $("revPayers").onclick = (e) => { const a = e.target.closest("[data-player]"); if (!a) return; e.preventDefault(); showPlayer(a.dataset.player); };
