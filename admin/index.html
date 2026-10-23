@@ -104,8 +104,8 @@
     main table:not(.keep) td[data-label=""]::before { display:none; }
     main table:not(.keep) td[data-label=""] { justify-content:flex-start; text-align:left; }
     main table:not(.keep) td > div, main table:not(.keep) td small, main table:not(.keep) td .muted { word-break:normal; overflow-wrap:anywhere; }
-    main table:not(.keep) td:is(:has(> select),:has(> div),:has(> label),:has(> textarea)):not([data-label="Akcje"]):not(.acts) { display:block; text-align:left; }
-    main table:not(.keep) td:is(:has(> select),:has(> div),:has(> label),:has(> textarea)):not([data-label="Akcje"]):not(.acts)::before { display:block; margin-bottom:4px; max-width:none; }
+    main table:not(.keep) td.stack { display:block; text-align:left; }
+    main table:not(.keep) td.stack::before { display:block; margin-bottom:4px; max-width:none; }
     main table:not(.keep) td [style*="max-width"] { max-width:none !important; }
     main table:not(.keep) td select { width:100%; max-width:100%; }
     main table:not(.keep) td > label { display:flex !important; align-items:center; gap:8px; }
@@ -149,6 +149,11 @@
   .prop { background:#0e151d; border:1px solid var(--line); border-radius:14px; padding:12px; margin:10px 0; }
   .prop h4 { margin:0 0 4px; font-size:15px; } .prop .chg { font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--accent); }
   .prop .acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; } .prop .acts button { flex:0 0 auto; min-height:38px; }
+  #feedback tr.resolved td:not(.stack) { opacity:.55; }
+  #feedback tr.resolved td[data-label="Treść"] { text-decoration:line-through; text-decoration-color:rgba(255,255,255,.35); }
+  .fb-done { display:flex; align-items:center; gap:8px; margin-top:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-weight:600; cursor:pointer; }
+  .fb-done input { width:auto; margin:0; transform:scale(1.25); }
+  tr.resolved .fb-done { border-color:#2e7d4f; background:rgba(46,125,79,.15); color:#7ee2a8; }
 </style>
 </head>
 <body>
@@ -1334,14 +1339,15 @@ async function loadFeedback() {
   if ($("fbFilter").value) q = q.eq("status", $("fbFilter").value);
   const rows = await check(q);
   const statuses = ["new","seen","planned","fixed","closed"];
-  $("feedback").querySelector("tbody").innerHTML = rows.map(f => `<tr>
+  $("feedback").querySelector("tbody").innerHTML = rows.map(f => `<tr class="${["fixed","closed"].includes(f.status) ? "resolved" : ""}">
     <td>${when(f.created_at)}</td><td><span class="pill">${esc(f.kind)}</span></td>
     <td style="max-width:420px; white-space:pre-wrap">${esc(f.body)}</td>
     <td class="muted">${esc(f.app_version)}<br>${esc(f.device)} · ${esc(f.language)}</td>
-    <td><select data-fb="${f.id}">${statuses.map(s => `<option ${s === f.status ? "selected" : ""}>${s}</option>`).join("")}</select>
+    <td class="stack"><label class="fb-done"><input type="checkbox" data-done="${f.id}" ${["fixed","closed"].includes(f.status) ? "checked" : ""}> ✅ Rozwiązane</label>
+      <select data-fb="${f.id}" style="margin-top:6px">${statuses.map(s => `<option ${s === f.status ? "selected" : ""}>${s}</option>`).join("")}</select>
       <div style="margin-top:6px"><button class="ghost" data-reply="${f.id}" data-note="${esc(f.admin_note || "")}">${f.admin_note ? "Zmień odpowiedź" : "Odpowiedz"}</button></div>
-      ${f.kind === "idea" ? `<label style="display:block;margin-top:6px"><input type="checkbox" data-public="${f.id}" ${f.is_public ? "checked" : ""}> Do głosowania</label>` : ""}
-      ${f.admin_note ? `<div class="muted" style="max-width:220px;white-space:pre-wrap">↳ ${esc(f.admin_note)}</div>` : ""}</td></tr>`).join("")
+      ${f.kind === "idea" ? `<label style="display:flex;align-items:center;gap:8px;margin-top:6px"><input type="checkbox" style="width:auto;margin:0" data-public="${f.id}" ${f.is_public ? "checked" : ""}> Do głosowania</label>` : ""}
+      ${f.admin_note ? `<div class="muted" style="white-space:pre-wrap;word-break:normal;overflow-wrap:anywhere;margin-top:6px">↳ ${esc(f.admin_note)}</div>` : ""}</td></tr>`).join("")
     || `<tr><td colspan="5" class="muted">Brak</td></tr>`;
 }
 $("fbFilter").onchange = loadFeedback; $("fbReload").onclick = loadFeedback;
@@ -1355,8 +1361,18 @@ $("feedback").onclick = async (e) => {
 $("feedback").onchange = async (e) => {
   const pub = e.target.closest("input[data-public]");
   if (pub) { await check(sb.rpc("admin_reply_feedback", { p_id: Number(pub.dataset.public), p_note: null, p_status: null, p_public: pub.checked })); return toast(pub.checked ? "Dodano do głosowania" : "Usunięto z głosowania"); }
+  const d = e.target.closest("input[data-done]");
+  if (d) {
+    const status = d.checked ? "fixed" : "seen";
+    await check(sb.from("feedback").update({ status }).eq("id", d.dataset.done));
+    const tr = d.closest("tr"); tr.classList.toggle("resolved", d.checked);
+    const sel = tr.querySelector("select[data-fb]"); if (sel) sel.value = status;
+    toast(d.checked ? "Oznaczono jako rozwiązane" : "Przywrócono jako otwarte"); return loadStats();
+  }
   const s = e.target.closest("select[data-fb]"); if (!s) return;
   await check(sb.from("feedback").update({ status: s.value }).eq("id", s.dataset.fb));
+  const tr = s.closest("tr"), done = ["fixed","closed"].includes(s.value);
+  tr.classList.toggle("resolved", done); const cb = tr.querySelector("input[data-done]"); if (cb) cb.checked = done;
   toast("Status zmieniony"); loadStats();
 };
 
