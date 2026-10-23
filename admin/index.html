@@ -320,6 +320,7 @@
         <div><label for="tunFreeOther">Darmowe przyspieszenie wojska i marszów poniżej (s)</label><input id="tunFreeOther" type="number" min="0"></div>
         <div><label for="tunVip">Dodatkowe darmowe sekundy na poziom VIP (budowa, badania, wojsko, marsze)</label><input id="tunVip" type="number" min="0" placeholder="180"></div>
         <div><label for="tunPercent">Wszystkie czasy budowy (%)</label><input id="tunPercent" type="number" min="1" max="1000" placeholder="100"></div>
+        <div><label for="tunResearchPercent">Wszystkie czasy badań (%) – 50 = dwa razy szybciej, 200 = dwa razy dłużej</label><input id="tunResearchPercent" type="number" min="10" max="1000" placeholder="100"></div>
         <div><label for="tunTeleport">Cena teleportu bazy (kryształy)</label><input id="tunTeleport" type="number" min="0" placeholder="500"></div>
         <div><label for="tunCrBoss">Kryształy za każdy atak na bossa świata</label><input id="tunCrBoss" type="number" min="0" placeholder="5"></div>
         <div><label for="tunCrMission">Kryształy za wygraną misję kampanii</label><input id="tunCrMission" type="number" min="0" placeholder="2"></div>
@@ -854,7 +855,7 @@ async function loadTuning() {
   const val = (k) => tuning[k] ?? "";
   $("tunFreeBuild").value = val("free_seconds_build"); $("tunFreeResearch").value = val("free_seconds_research");
   $("tunFreeOther").value = val("free_seconds_other"); $("tunFreeOther").placeholder = String(tunDefaults.free_seconds_other_default);
-  $("tunVip").value = val("vip_seconds_per_level"); $("tunPercent").value = val("build_time_percent");
+  $("tunVip").value = val("vip_seconds_per_level"); $("tunPercent").value = val("build_time_percent"); $("tunResearchPercent").value = val("research_time_percent");
   $("tunTeleport").value = val("teleport_price"); $("tunCrBoss").value = val("crystals_boss_attack");
   $("tunCrMission").value = val("crystals_mission"); $("tunCrMob").value = val("crystals_mob");
   ["8","24","48","72"].forEach(h => $("tunSh" + h).value = tuning.shield_prices?.[h] ?? "");
@@ -942,7 +943,7 @@ $("tunSave").onclick = async () => {
   let times; try { times = collectTunLevels(); } catch (e) { return toast(e.message, true); }
   const num = (id) => $(id).value === "" ? undefined : Math.max(0, parseInt($(id).value, 10));
   const value = { free_seconds_build: num("tunFreeBuild"), free_seconds_research: num("tunFreeResearch"), free_seconds_other: num("tunFreeOther"),
-    vip_seconds_per_level: num("tunVip"), build_time_percent: num("tunPercent"),
+    vip_seconds_per_level: num("tunVip"), build_time_percent: num("tunPercent"), research_time_percent: $("tunResearchPercent").value === "" ? undefined : Math.min(1000, Math.max(10, parseInt($("tunResearchPercent").value, 10))),
     teleport_price: num("tunTeleport"), crystals_boss_attack: num("tunCrBoss"), crystals_mission: num("tunCrMission"), crystals_mob: num("tunCrMob"),
     shield_prices: (() => { const o = {}; ["8","24","48","72"].forEach(h => { const v = num("tunSh" + h); if (v !== undefined) o[h] = v; }); return Object.keys(o).length ? o : undefined; })(),
     raids_enabled: $("tunRaidsOn").value === "off" ? false : undefined, raid_power_percent: num("tunRaidPower"),
