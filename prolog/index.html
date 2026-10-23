@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DistrictX – Prologue</title>
+<meta name="description" content="Watch the DistrictX prologue: Part I and Part II. Become the Boss and take the city. Free on iPhone.">
+<meta property="og:type" content="video.other">
+<meta property="og:title" content="DistrictX – Prologue I & II">
+<meta property="og:description" content="Become the Boss. Build your crew. Take the city. Free on iPhone.">
+<meta property="og:url" content="https://enkier.github.io/districtx-legal/prolog/">
+<meta property="og:image" content="https://enkier.github.io/districtx-legal/waitlist/media/poster.jpg">
+<meta property="og:video" content="https://enkier.github.io/districtx-legal/waitlist/media/promo_en.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:video:width" content="720">
+<meta property="og:video:height" content="1280">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DistrictX – Prologue I & II">
+<meta name="twitter:image" content="https://enkier.github.io/districtx-legal/waitlist/media/poster.jpg">
+<style>
+  :root { --bg:#07090d; --fg:#eef3f8; --muted:#97a8ba; --cyan:#3fd0ff; --amber:#ffb547; --line:#1d2834; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif; }
+  body::before { content:""; position:fixed; inset:0; background:url(../waitlist/media/bg.jpg) center/cover; filter:brightness(.25) saturate(1.2); z-index:-1; }
+  main { max-width:440px; margin:0 auto; padding:20px 16px 32px; display:grid; gap:14px; }
+  h1 { margin:6px 0 0; font-size:30px; letter-spacing:1px; text-align:center; text-shadow:0 0 22px rgba(63,208,255,.55); }
+  .sub { margin:0; text-align:center; color:var(--amber); font-weight:800; letter-spacing:3px; text-transform:uppercase; font-size:13px; }
+  .tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:5px; background:rgba(10,14,20,.8); border:1px solid var(--line); border-radius:16px; }
+  .tabs button { padding:12px 8px; border:0; border-radius:12px; background:transparent; color:var(--muted); font:inherit; font-weight:800; font-size:15px; cursor:pointer; }
+  .tabs button.on { background:linear-gradient(135deg,#ffc54a,#ffb020); color:#1a1000; box-shadow:0 0 18px rgba(255,176,32,.35); }
+  .player { position:relative; }
+  video { width:100%; aspect-ratio:9/16; display:block; border-radius:22px; border:1px solid rgba(63,208,255,.45); box-shadow:0 0 50px rgba(63,208,255,.22); background:#000; object-fit:cover; }
+  .cta { display:flex; align-items:center; justify-content:center; gap:8px; padding:15px 18px; border-radius:14px; background:linear-gradient(135deg,#ffc54a,#ffb020); color:#1a1000; font-weight:800; text-decoration:none; box-shadow:0 0 26px rgba(255,176,32,.3); }
+  .langs { display:flex; flex-wrap:wrap; justify-content:center; gap:4px; }
+  .langs button { background:rgba(10,14,20,.7); color:var(--muted); border:1px solid var(--line); padding:3px 10px; border-radius:99px; font-weight:700; font-size:12px; cursor:pointer; }
+  .langs button.on { color:#00121c; background:var(--cyan); border-color:var(--cyan); }
+  .note { text-align:center; color:var(--muted); font-size:13px; margin:0; }
+</style>
+</head>
+<body>
+<main>
+  <div class="langs" id="langs"></div>
+  <h1>DISTRICT X</h1>
+  <p class="sub" id="sub"></p>
+  <div class="tabs" role="tablist">
+    <button id="t1" class="on" role="tab"></button>
+    <button id="t2" role="tab"></button>
+  </div>
+  <div class="player"><video id="v" controls playsinline preload="metadata" poster="../waitlist/media/poster.jpg"></video></div>
+  <a class="cta" id="cta" href="../waitlist/?src=prolog"></a>
+  <p class="note" id="note"></p>
+</main>
+<script>
+const T = {
+  pl:{sub:"Zwiastun gry",p1:"Prolog I",p2:"Prolog II",cta:"Zagraj za darmo na iPhone",note:"Zostań Bossem. Zbierz ekipę. Przejmij miasto."},
+  en:{sub:"Game trailer",p1:"Prologue I",p2:"Prologue II",cta:"Play free on iPhone",note:"Become the Boss. Build your crew. Take the city."},
+  "zh-Hans":{sub:"游戏预告",p1:"序章 I",p2:"序章 II",cta:"在 iPhone 上免费游玩",note:"成为首领，组建团队，夺取城市。"},
+  "zh-Hant":{sub:"遊戲預告",p1:"序章 I",p2:"序章 II",cta:"在 iPhone 上免費遊玩",note:"成為首領，組建團隊，奪取城市。"},
+  ko:{sub:"게임 트레일러",p1:"프롤로그 I",p2:"프롤로그 II",cta:"iPhone에서 무료로 플레이",note:"보스가 되어 크루를 모으고 도시를 차지하세요."},
+  ar:{sub:"إعلان اللعبة",p1:"المقدمة I",p2:"المقدمة II",cta:"العب مجانًا على iPhone",note:"كن الزعيم. كوّن فريقك. استولِ على المدينة."},
+  he:{sub:"טריילר המשחק",p1:"פרולוג I",p2:"פרולוג II",cta:"שחקו בחינם ב‑iPhone",note:"היה הבוס. בנה צוות. כבוש את העיר."}
+};
+const NAMES = {pl:"PL",en:"EN","zh-Hans":"简","zh-Hant":"繁",ko:"한",ar:"ع",he:"ע"};
+const q = new URLSearchParams(location.search);
+function pick(){ const want=(q.get("lang")||navigator.language||"en"); if(T[want]) return want;
+  const l=want.toLowerCase(); if(l.startsWith("zh")) return /hant|tw|hk|mo/.test(l)?"zh-Hant":"zh-Hans";
+  const s=l.slice(0,2); return T[s]?s:"en"; }
+let lang=pick(), part=q.get("part")==="2"?2:1;
+const v=document.getElementById("v");
+function src(){ return part===1 ? `../waitlist/media/promo_${lang}.mp4` : `media/prologue2_${lang}.mp4`; }
+function render(play){
+  const t=T[lang]; document.documentElement.lang=lang; document.documentElement.dir=(lang==="ar"||lang==="he")?"rtl":"ltr";
+  document.getElementById("sub").textContent=t.sub; document.getElementById("t1").textContent=t.p1; document.getElementById("t2").textContent=t.p2;
+  document.getElementById("cta").textContent=t.cta; document.getElementById("note").textContent=t.note;
+  document.getElementById("t1").classList.toggle("on",part===1); document.getElementById("t2").classList.toggle("on",part===2);
+  document.getElementById("cta").href="../waitlist/?src=prolog&lang="+encodeURIComponent(lang);
+  const s=src(); if(!v.src.endsWith(s.replace("..",""))){ v.src=s; if(play) v.play().catch(()=>{}); }
+  document.querySelectorAll("#langs button").forEach(b=>b.classList.toggle("on",b.dataset.l===lang));
+}
+const box=document.getElementById("langs");
+Object.keys(T).forEach(l=>{ const b=document.createElement("button"); b.textContent=NAMES[l]; b.dataset.l=l; b.onclick=()=>{lang=l; render(!v.paused);}; box.appendChild(b); });
+document.getElementById("t1").onclick=()=>{ part=1; render(true); };
+document.getElementById("t2").onclick=()=>{ part=2; render(true); };
+v.addEventListener("ended",()=>{ if(part===1){ part=2; render(true); } });
+render(false);
+</script>
+</body>
+</html>
