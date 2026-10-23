@@ -103,7 +103,12 @@
     main table:not(.keep) td::before { content:attr(data-label); color:var(--muted); font-size:12px; font-weight:600; text-align:left; flex:0 0 auto; max-width:45%; }
     main table:not(.keep) td[data-label=""]::before { display:none; }
     main table:not(.keep) td[data-label=""] { justify-content:flex-start; text-align:left; }
-    main table:not(.keep) td > div, main table:not(.keep) td small, main table:not(.keep) td .muted { word-break:break-all; }
+    main table:not(.keep) td > div, main table:not(.keep) td small, main table:not(.keep) td .muted { word-break:normal; overflow-wrap:anywhere; }
+    main table:not(.keep) td:is(:has(> select),:has(> div),:has(> label),:has(> textarea)):not([data-label="Akcje"]):not(.acts) { display:block; text-align:left; }
+    main table:not(.keep) td:is(:has(> select),:has(> div),:has(> label),:has(> textarea)):not([data-label="Akcje"]):not(.acts)::before { display:block; margin-bottom:4px; max-width:none; }
+    main table:not(.keep) td [style*="max-width"] { max-width:none !important; }
+    main table:not(.keep) td select { width:100%; max-width:100%; }
+    main table:not(.keep) td:is([data-label="Wiadomość"],[data-label="Treść"]) { white-space:pre-wrap; word-break:normal; overflow-wrap:anywhere; font-size:15px; line-height:1.4; }
     main table:not(.keep) td[colspan] { display:block; text-align:center; }
     main table:not(.keep) td.acts, main table:not(.keep) td[data-label="Akcje"] { flex-wrap:wrap; justify-content:flex-start; gap:6px; padding-top:8px; border-top:1px solid var(--line); margin-top:4px; }
     main table:not(.keep) td[data-label="Akcje"]::before { display:none; }
