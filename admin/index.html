@@ -115,6 +115,33 @@
     main table:not(.keep) td button { white-space:nowrap; }
     .scroll { overflow-x:visible; }
   }
+
+  /* ---- 2026-10-23: collapsible sections, nothing spills into the next card ---- */
+  section { overflow:hidden; }
+  .scroll[style*="max-height"] { overflow-y:auto; }
+  @media (max-width:700px) { .scroll[style*="max-height"] { overflow:auto; } }
+  .sec-head { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; -webkit-user-select:none; }
+  .sec-head > .row, .sec-head > h2 { flex:1 1 auto; margin:0 !important; }
+  .sec-chev { flex:0 0 auto; width:34px; height:34px; min-height:34px; border-radius:10px; background:#1b2733; color:var(--muted); border:1px solid var(--line); padding:0; font-size:15px; transition:transform .15s; }
+  section.collapsed .sec-chev { transform:rotate(-90deg); }
+  section.collapsed > .sec-body { display:none; }
+  section.collapsed { padding-top:12px; padding-bottom:12px; }
+  .sec-body { margin-top:12px; }
+  .sec-tools { display:flex; gap:8px; margin:8px 2px 0; flex-wrap:wrap; }
+  .sec-tools button { min-height:36px; padding:4px 12px; font-size:13px; }
+  details.sub { border:1px solid var(--line); border-radius:12px; margin:12px 0; background:#0e151d80; }
+  details.sub > summary { cursor:pointer; padding:10px 12px; font-weight:700; list-style:none; display:flex; align-items:center; gap:8px; }
+  details.sub > summary::-webkit-details-marker { display:none; }
+  details.sub > summary::before { content:"▸"; color:var(--muted); transition:transform .15s; }
+  details.sub[open] > summary::before { transform:rotate(90deg); }
+  details.sub > .sub-body { padding:0 12px 12px; }
+  .todo { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:10px; }
+  .todo button { display:block; text-align:left; background:#0e151d; color:var(--fg); border:1px solid var(--line); border-radius:14px; padding:12px; min-height:auto; }
+  .todo button b { display:block; font-size:24px; } .todo button small { color:var(--muted); font-weight:500; }
+  .todo button.hot { border-color:var(--amber); } .todo button.hot b { color:var(--amber); }
+  .prop { background:#0e151d; border:1px solid var(--line); border-radius:14px; padding:12px; margin:10px 0; }
+  .prop h4 { margin:0 0 4px; font-size:15px; } .prop .chg { font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--accent); }
+  .prop .acts { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; } .prop .acts button { flex:0 0 auto; min-height:38px; }
 </style>
 </head>
 <body>
@@ -159,6 +186,20 @@
     <section>
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">Statystyki</h2><button class="ghost" style="flex:0 0 auto" id="refreshStats">Odśwież</button></div>
       <div class="grid" id="stats" style="margin-top:12px"></div>
+    </section>
+
+    <section id="propSection">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🧭 Do decyzji i propozycje GM</h2><button class="ghost" style="flex:0 0 auto" id="propReload">Odśwież</button></div>
+      <div class="todo" id="todo"></div>
+      <h3 style="margin:16px 0 4px">Propozycje zmian balansu</h3>
+      <p class="muted">Doradca GM codziennie (6:40 UTC) sprawdza wyniki walk z ostatnich 7 dni: moby i kampania (cel 60–85% wygranych), najazdy (cel 55–85% odpartych) i bossów świata. Gdy gra jest za łatwa albo za trudna, proponuje korektę. Nic się nie zmienia bez Twojej akceptacji; każdą zaakceptowaną zmianę możesz cofnąć w historii poniżej.</p>
+      <div class="row">
+        <div><label for="propAdvisor">Doradca GM</label><select id="propAdvisor"><option value="on">Włączony (tylko propozycje)</option><option value="off">Wyłączony</option></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="propRun">Analizuj teraz</button></div>
+      </div>
+      <div id="propPending"></div>
+      <h3 style="margin:16px 0 4px">Historia decyzji</h3>
+      <div class="scroll" style="max-height:420px"><table id="propHistory"><thead><tr><th>Data</th><th>Propozycja</th><th>Zmiana</th><th>Status</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section id="gmSection">
@@ -589,6 +630,73 @@ $("signIn").onclick = async () => {
 $("password").onkeydown = (e) => { if (e.key === "Enter") $("signIn").click(); };
 $("logout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
+// ---------- Supervision: things waiting for the admin + GM proposals ----------
+const PROP_STATUS = { pending:"Czeka", accepted:"Zaakceptowana", rejected:"Odrzucona", reverted:"Cofnięta", expired:"Wygasła" };
+const PROP_KEYS = { "tuning.mob_power_percent":"Siła mobów i PvE (%)", "tuning.raid_power_percent":"Siła najazdów (%)", "gm.difficulty":"Trudność GM (bossowie świata)" };
+function propLabel(p) { return PROP_KEYS[p.config_key + "." + (p.path || []).join(".")] || (p.config_key + "." + (p.path || []).join(".")); }
+function propVal(v) { return v === null || v === undefined ? "domyślnie" : JSON.stringify(v); }
+async function loadProposals() {
+  const [rows, gm, reports, fb, beta, disp] = await Promise.all([
+    check(sb.from("gm_proposals").select("*").order("created_at", { ascending:false }).limit(100)),
+    check(sb.from("live_config").select("value").eq("key", "gm")),
+    sb.from("chat_reports").select("id", { count:"exact", head:true }).eq("status", "open"),
+    sb.from("feedback").select("id", { count:"exact", head:true }).eq("status", "new"),
+    sb.from("waitlist").select("id", { count:"exact", head:true }).eq("wants_beta", true).eq("status", "pending"),
+    sb.from("attacks").select("id", { count:"exact", head:true }).eq("verified", "mismatch")
+  ]);
+  const pending = rows.filter(r => r.status === "pending");
+  $("propAdvisor").value = gm[0]?.value?.advisor === false ? "off" : "on";
+  const tiles = [
+    ["Propozycje GM", pending.length, "propSection", "home"],
+    ["Zgłoszenia z czatu", reports.count || 0, "Czat i moderacja", "mod"],
+    ["Nowe opinie i błędy", fb.count || 0, "Opinie i błędy", "home"],
+    ["Prośby o betę", beta.count || 0, "Chętni do bety", "players"],
+    ["Sporne walki PvP", disp.count || 0, "Sporne wyniki", "mod"]
+  ];
+  $("todo").innerHTML = tiles.map(([name, n, target, cat], i) => `<button type="button" data-i="${i}" class="${n > 0 ? "hot" : ""}"><b>${n}</b><small>${name}</small></button>`).join("");
+  $("todo").querySelectorAll("button").forEach(b => b.onclick = () => window.dxOpenSection && window.dxOpenSection(tiles[b.dataset.i][2], tiles[b.dataset.i][3]));
+  $("propPending").innerHTML = pending.length ? pending.map(p => `<div class="prop"><h4>${esc(p.title)}</h4><div>${esc(p.rationale)}</div>
+    <div class="chg" style="margin-top:6px">${esc(propLabel(p))}: ${esc(propVal(p.from_value))} → ${esc(propVal(p.to_value))}</div>
+    <div class="muted" style="font-size:12px">${new Date(p.created_at).toLocaleString("pl-PL")}</div>
+    <div class="acts"><button data-acc="${p.id}">Akceptuj</button><button class="ghost" data-rej="${p.id}">Odrzuć</button></div></div>`).join("")
+    : '<p class="muted">Brak propozycji do decyzji.</p>';
+  $("propPending").querySelectorAll("[data-acc]").forEach(b => b.onclick = () => decideProposal(b.dataset.acc, true));
+  $("propPending").querySelectorAll("[data-rej]").forEach(b => b.onclick = () => decideProposal(b.dataset.rej, false));
+  const hist = rows.filter(r => r.status !== "pending");
+  $("propHistory").querySelector("tbody").innerHTML = hist.length ? hist.map(p => `<tr>
+    <td>${new Date(p.decided_at || p.created_at).toLocaleString("pl-PL")}</td><td>${esc(p.title)}</td>
+    <td>${esc(propLabel(p))}: ${esc(propVal(p.from_value))} → ${esc(propVal(p.to_value))}</td>
+    <td>${PROP_STATUS[p.status] || p.status}${p.reverted_at ? " (" + new Date(p.reverted_at).toLocaleString("pl-PL") + ")" : ""}</td>
+    <td>${p.status === "accepted" ? `<button class="ghost" data-rev="${p.id}">Cofnij</button>` : ""}</td></tr>`).join("")
+    : '<tr><td colspan="5" class="muted">Jeszcze nie było decyzji.</td></tr>';
+  $("propHistory").querySelectorAll("[data-rev]").forEach(b => b.onclick = () => revertProposal(b.dataset.rev));
+  if (window.dxBadge) window.dxBadge("home", pending.length);
+}
+async function decideProposal(id, accept) {
+  if (accept && !confirm("Zastosować tę zmianę w grze? Gracze dostaną ją przy najbliższej synchronizacji.")) return;
+  await check(sb.rpc("gm_proposal_decide", { p_id: Number(id), p_accept: accept }));
+  toast(accept ? "Zaakceptowano i zastosowano" : "Odrzucono"); loadProposals(); loadTuning().catch(() => {}); loadGM().catch(() => {});
+}
+async function revertProposal(id) {
+  if (!confirm("Cofnąć tę zmianę i przywrócić poprzednią wartość?")) return;
+  const r = await check(sb.rpc("gm_proposal_revert", { p_id: Number(id) }));
+  toast(r?.changed_since ? "Cofnięto (wartość była w międzyczasie zmieniana ręcznie)" : "Cofnięto"); loadProposals(); loadTuning().catch(() => {}); loadGM().catch(() => {});
+}
+async function setAdvisor() {
+  const rows = await check(sb.from("live_config").select("value").eq("key", "gm"));
+  const value = { ...(rows[0]?.value || {}), advisor: $("propAdvisor").value === "on" };
+  await check(sb.rpc("admin_set_config", { p_key: "gm", p_value: value }));
+  toast(value.advisor ? "Doradca GM włączony" : "Doradca GM wyłączony");
+}
+document.addEventListener("DOMContentLoaded", () => {});
+$("propReload").onclick = () => loadProposals().catch(() => {});
+$("propAdvisor").onchange = () => setAdvisor().catch(() => {});
+$("propRun").onclick = async () => {
+  const r = await check(sb.rpc("gm_difficulty_review", { p_force: true }));
+  const n = (r?.proposals || []).length;
+  toast(n ? "Nowe propozycje: " + n : "Brak nowych propozycji (za mało danych albo balans w normie)"); loadProposals();
+};
+
 async function start() {
   try { await startInner(); } catch (e) {
     console.error(e);
@@ -608,7 +716,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases();
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadProposals().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -1586,7 +1694,7 @@ start();
 (function(){
   const CATS = [
     { id:"home", ic:"📊", name:"Pulpit", sub:"Statystyki, zakupy, zgłoszenia i ogłoszenia", color:"#3fd0ff",
-      match:["Statystyki","Ostatnie zakupy","Opinie i błędy","Ogłoszenia w grze"] },
+      match:["Statystyki","Do decyzji","Ostatnie zakupy","Opinie i błędy","Ogłoszenia w grze"] },
     { id:"players", ic:"👥", name:"Gracze", sub:"Gracze, sojusze, beta i prezenty", color:"#4ade80",
       match:["=Gracze","Sojusze","Konta z bety","Chętni do bety","Prezent dla"] },
     { id:"events", ic:"🎉", name:"Wydarzenia", sub:"Boss świata, kalendarz, promocje i push", color:"#ffb547",
@@ -1604,6 +1712,47 @@ start();
     const cat = CATS.find(c => c.match.some(m => m.startsWith("=") ? t === m.slice(1) : (t === m || t.startsWith(m)))) || CATS[0];
     sec.dataset.cat = cat.id; sec.style.setProperty("--cat", cat.color);
   }
+  // Collapsible sections: header row toggles, state remembered per section.
+  const OPEN_DEFAULT = ["Statystyki", "Do decyzji i propozycje GM"];
+  let openSet = null;
+  try { openSet = new Set(JSON.parse(localStorage.getItem("dxadmin.open") || "null") || OPEN_DEFAULT); } catch (e) { openSet = new Set(OPEN_DEFAULT); }
+  const saveOpen = () => { try { localStorage.setItem("dxadmin.open", JSON.stringify([...openSet])); } catch (e) {} };
+  function setOpen(sec, open) {
+    sec.classList.toggle("collapsed", !open);
+    const t = title(sec); if (open) openSet.add(t); else openSet.delete(t); saveOpen();
+  }
+  for (const sec of secs) {
+    const headEl = sec.firstElementChild; if (!headEl) continue;
+    const body = document.createElement("div"); body.className = "sec-body";
+    while (headEl.nextSibling) body.appendChild(headEl.nextSibling);
+    const bar = document.createElement("div"); bar.className = "sec-head";
+    sec.insertBefore(bar, headEl); bar.appendChild(headEl);
+    const chev = document.createElement("button"); chev.type = "button"; chev.className = "sec-chev"; chev.textContent = "▾";
+    chev.setAttribute("aria-label", "Rozwiń lub zwiń"); bar.appendChild(chev);
+    sec.appendChild(body);
+    bar.addEventListener("click", (e) => { if (e.target.closest("button:not(.sec-chev), input, select, a")) return; setOpen(sec, sec.classList.contains("collapsed")); });
+    // Long sections: each h3 group folds on its own.
+    if (sec.id !== "propSection") {
+      const kids = Array.from(body.children);
+      let group = null;
+      for (const k of kids) {
+        if (k.tagName === "H3") {
+          group = document.createElement("details"); group.className = "sub";
+          const sum = document.createElement("summary"); sum.textContent = k.textContent; group.appendChild(sum);
+          const gb = document.createElement("div"); gb.className = "sub-body"; group.appendChild(gb);
+          k.replaceWith(group); group._body = gb; continue;
+        }
+        if (group && !(k.classList.contains("row") && k.querySelector("#tunSave"))) group._body.appendChild(k);
+        else if (group) group = null;
+      }
+    }
+    setOpen(sec, openSet.has(title(sec)));
+  }
+  window.dxOpenSection = (name, cat) => {
+    show(cat, false);
+    const sec = secs.find(x => x.id === name || title(x).startsWith(name)); if (!sec) return;
+    setOpen(sec, true); setTimeout(() => sec.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
   const nav = document.createElement("nav"); nav.id = "catnav"; nav.setAttribute("aria-label", "Kategorie");
   const head = document.createElement("div"); head.id = "cattitle";
   app.prepend(head);
@@ -1621,10 +1770,27 @@ start();
     for (const sec of secs) sec.classList.toggle("hidden", sec.dataset.cat !== c.id);
     for (const b of nav.children) b.classList.toggle("on", b.dataset.cat === c.id);
     head.innerHTML = c.ic + " " + c.name + "<small>" + c.sub + "</small>";
+    const tools = document.createElement("div"); tools.className = "sec-tools";
+    const mine = secs.filter(x => x.dataset.cat === c.id);
+    const bOpen = document.createElement("button"); bOpen.type = "button"; bOpen.className = "ghost"; bOpen.textContent = "Rozwiń wszystko";
+    bOpen.onclick = () => mine.forEach(x => setOpen(x, true));
+    const bClose = document.createElement("button"); bClose.type = "button"; bClose.className = "ghost"; bClose.textContent = "Zwiń wszystko";
+    bClose.onclick = () => mine.forEach(x => setOpen(x, false));
+    tools.append(bOpen, bClose); head.appendChild(tools);
     if (scroll) scrollTo({ top: 0, behavior: "smooth" });
+  }
+  // Red counter on a category (e.g. GM proposals waiting on the Dashboard).
+  const extraBadges = {};
+  window.dxBadge = (cat, n) => { extraBadges[cat] = n; badges(); };
+  function setCnt(cat, n) {
+    const b = nav.querySelector('[data-cat="' + cat + '"]'); if (!b) return;
+    let cnt = b.querySelector(".cnt");
+    if (n > 0) { if (!cnt) { cnt = document.createElement("span"); cnt.className = "cnt"; b.appendChild(cnt); } cnt.textContent = n; }
+    else if (cnt) cnt.remove();
   }
   // Pending work as red counters: beta requests waiting for a decision.
   function badges() {
+    for (const [cat, n] of Object.entries(extraBadges)) if (cat !== "players") setCnt(cat, n);
     const pending = document.querySelectorAll('#beta tr[data-pending]').length;
     const b = nav.querySelector('[data-cat="players"]'); if (!b) return;
     let cnt = b.querySelector(".cnt");
