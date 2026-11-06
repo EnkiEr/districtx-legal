@@ -234,6 +234,15 @@
       <div id="srvBars" style="display:grid;gap:12px;margin-top:8px"></div>
     </section>
 
+    <section id="founderSection">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🏅 Herb założyciela i ramka</h2><button class="ghost" style="flex:0 0 auto" id="fdReload">Odśwież</button></div>
+      <p class="hint">Herb z literą X i ramka założyciela są przyznawane <b>wyłącznie ręcznie</b> – nowe konta nie dostają ich automatycznie. Poniżej testerzy z archiwum (sprzed startu) i konta, które założyli po reinstalacji (to samo urządzenie albo ta sama nazwa). Herb możesz też nadać dowolnemu graczowi w jego karcie.</p>
+      <div class="scroll" style="max-height:420px"><table id="fdTable"><thead><tr><th>Tester (archiwum)</th><th>HQ</th><th>Nowe konto</th><th>Herb</th></tr></thead><tbody></tbody></table></div>
+      <h3 style="margin:16px 0 4px">🌍 Reset świata</h3>
+      <p class="hint">Podbija epokę świata: każdy telefon z zapisem sprzed tej chwili sam go wyczyści przy najbliższym uruchomieniu (od wersji 1.0.2) i zacznie od zera. Konta admina są pominięte. Wpisz RESET, aby potwierdzić.</p>
+      <div class="row"><div><label>Bieżąca epoka</label><input id="wrEpoch" disabled></div><div><label>Potwierdzenie</label><input id="wrConfirm" placeholder="RESET"></div><div style="flex:0 0 auto"><button id="wrRun" class="warn">Resetuj świat</button></div></div>
+    </section>
+
     <section id="gmSection">
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🎮 Agent GM (mistrz gry)</h2><button class="ghost" style="flex:0 0 auto" id="gmReload">Odśwież</button></div>
       <p class="hint">Gdy agent jest włączony, co 15 minut sprawdza serwer i sam dba, żeby gra żyła: wypuszcza bossa świata w rozsądnych odstępach, ogłasza fale mobów (więcej łupu z mobów) i wieczorną „szczęśliwą godzinę”. Poziom bossa i jego punkty życia dobiera do aktywnych graczy z ostatnich 3 dni.</p>
@@ -763,7 +772,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases(); loadRevenue().catch(() => {});
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadServer().catch(() => {}); loadProposals().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadServer().catch(() => {}); loadFounders().catch(() => {}); loadProposals().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -1655,6 +1664,7 @@ async function showPlayer(id) {
     <p>Sojusz: ${d.alliance ? `[${esc(d.alliance.tag)}] ${esc(d.alliance.name)}` : "—"} · Ochrona: ${shield} · Zakupy: ${d.purchases} · Ataki: ${d.attacks} · Prezenty czekające: ${d.pending_gifts}</p>
     <p>Sieci społecznościowe: ${socials}</p>
     <p>Subskrypcje: ${ents}</p>
+    <p>Herb założyciela: <b>${p.founder ? "tak" : "nie"}</b> <button class="ghost" style="flex:0 0 auto;margin-left:8px" id="pdFounder">${p.founder ? "Zdejmij herb i ramkę" : "Nadaj herb i ramkę"}</button></p>
     <div class="row">
       <div><label>Ochrona (godziny, 0 = zdejmij)</label><input id="pdShield" type="number" min="0" value="24"></div>
       <div style="flex:0 0 auto"><button id="pdShieldSet">Ustaw ochronę</button></div>
@@ -1695,6 +1705,7 @@ async function showPlayer(id) {
   $("playerDetail").classList.remove("hidden");
   $("pdClose").onclick = () => $("playerDetail").classList.add("hidden");
   $("pdShieldSet").onclick = async () => { await check(sb.rpc("admin_set_shield", { p_user: id, p_hours: parseFloat($("pdShield").value || "0") })); toast("Ochrona ustawiona"); showPlayer(id); };
+  $("pdFounder").onclick = async () => { await check(sb.rpc("admin_set_founder", { p_user: id, p_on: !p.founder, p_note: "ręcznie z karty gracza" })); toast(p.founder ? "Herb zdjęty" : "Herb nadany"); showPlayer(id); };
   $("pdRename").onclick = async () => { await check(sb.rpc("admin_rename_player", { p_user: id, p_name: $("pdName").value })); toast("Nazwa zmieniona"); showPlayer(id); searchPlayers(); };
   $("pdCrGrant").onclick = async () => {
     const amount = parseInt($("pdCrAmount").value || "0", 10);
@@ -1780,6 +1791,30 @@ async function loadServer() {
   $("srvAlert").innerHTML = over.length ? `<div class="err" style="padding:10px 12px;border-radius:10px;background:rgba(255,90,95,.12)">⚠️ Powyżej ${alert}% limitu: ${over.map(esc).join(", ")}. Czas przejść na wyższy plan Supabase (Pro 25 USD/mies.).</div>` : "";
 }
 $("srvReload").onclick = () => loadServer();
+// ---- Herb założyciela + reset świata (1.0.2) ----
+async function loadFounders() {
+  const rows = await check(sb.rpc("admin_tester_matches")); if (!rows) return;
+  $("fdTable").querySelector("tbody").innerHTML = rows.map(r => {
+    const m = (r.matches || []);
+    const acc = m.length ? m.map(x => `${esc(x.name)} <span class="muted">HQ ${x.hq}</span>`).join("<br>") : '<span class="muted">jeszcze nie wrócił</span>';
+    const btn = m.map(x => `<button class="${x.founder ? "ghost" : ""}" style="margin:2px 0" data-founder="${esc(x.id)}" data-on="${x.founder ? 0 : 1}">${x.founder ? "Zdejmij" : "Nadaj herb"}</button>`).join("<br>");
+    return `<tr><td>${esc(r.archived_name)}</td><td>${r.archived_hq}</td><td>${acc}</td><td>${btn || "—"}</td></tr>`;
+  }).join("") || '<tr><td colspan="4" class="muted">Brak testerów w archiwum</td></tr>';
+  $("fdTable").querySelectorAll("[data-founder]").forEach(b => b.onclick = async () => {
+    await check(sb.rpc("admin_set_founder", { p_user: b.dataset.founder, p_on: b.dataset.on === "1", p_note: "tester sprzed startu" }));
+    toast(b.dataset.on === "1" ? "Herb nadany" : "Herb zdjęty"); loadFounders();
+  });
+  const { data: w } = await sb.from("live_config").select("value").eq("key", "world").maybeSingle();
+  $("wrEpoch").value = w && w.value ? `${w.value.epoch} (od ${when(w.value.reset_at)})` : "—";
+}
+$("fdReload").onclick = () => loadFounders();
+$("wrRun").onclick = async () => {
+  if ($("wrConfirm").value !== "RESET") { toast("Wpisz RESET, aby potwierdzić"); return; }
+  if (!confirm("Na pewno zresetować świat? Wszystkie telefony z wcześniejszym zapisem zaczną od zera.")) return;
+  await check(sb.rpc("admin_world_reset", { p_confirm: "RESET" }));
+  $("wrConfirm").value = ""; toast("Świat zresetowany – nowa epoka"); loadFounders();
+};
+
 
 // ---- Agent GM ----
 const GM_ACT = { boss: "👹 Boss świata", wave: "🧟 Fala mobów", happy_hour: "✨ Szczęśliwa godzina" };
@@ -1839,7 +1874,7 @@ start();
     { id:"home", ic:"📊", name:"Pulpit", sub:"Statystyki, zakupy, zgłoszenia i ogłoszenia", color:"#FF6A1F",
       match:["Statystyki","Do decyzji","Przychody i zakupy","Opinie i błędy","Ogłoszenia w grze"] },
     { id:"players", ic:"👥", name:"Gracze", sub:"Gracze, sojusze, beta i prezenty", color:"#3DDC84",
-      match:["=Gracze","Sojusze","Konta z bety","Chętni do bety","Prezent dla"] },
+      match:["=Gracze","Herb założyciela","Sojusze","Konta z bety","Chętni do bety","Prezent dla"] },
     { id:"events", ic:"🎉", name:"Wydarzenia", sub:"Boss świata, kalendarz, promocje i push", color:"#FFC24B",
       match:["Agent GM","Komunikat wydarzenia","Wydarzenia na żywo","Kalendarz","Promocja","Kampanie push"] },
     { id:"game", ic:"⚙️", name:"Gra", sub:"Balans, czasy, gracze AI, VIP i konfiguracja", color:"#b28bff",
