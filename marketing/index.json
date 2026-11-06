@@ -2,7 +2,7 @@
  "updated": "2026-10-23",
  "items": [
   {
-   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_he.mp4",
+   "url": "https://districtx-legal.pages.dev/waitlist/media/promo_he.mp4",
    "type": "video",
    "lang": "he",
    "theme": "prologue",
@@ -11,7 +11,7 @@
    "note": "Prolog gry z lektorem i napisami"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_ar.mp4",
+   "url": "https://districtx-legal.pages.dev/waitlist/media/promo_ar.mp4",
    "type": "video",
    "lang": "ar",
    "theme": "prologue",
@@ -20,7 +20,7 @@
    "note": "Prolog gry z lektorem i napisami"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_zh-Hant.mp4",
+   "url": "https://districtx-legal.pages.dev/waitlist/media/promo_zh-Hant.mp4",
    "type": "video",
    "lang": "zh-Hant",
    "theme": "prologue",
@@ -29,7 +29,7 @@
    "note": "Prolog gry z lektorem i napisami"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_zh-Hans.mp4",
+   "url": "https://districtx-legal.pages.dev/waitlist/media/promo_zh-Hans.mp4",
    "type": "video",
    "lang": "zh-Hans",
    "theme": "prologue",
@@ -38,7 +38,7 @@
    "note": "Prolog gry z lektorem i napisami"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_ko.mp4",
+   "url": "https://districtx-legal.pages.dev/waitlist/media/promo_ko.mp4",
    "type": "video",
    "lang": "ko",
    "theme": "prologue",
@@ -47,7 +47,7 @@
    "note": "Prolog gry z lektorem i napisami"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_en.mp4",
+   "url": "https://districtx-legal.pages.dev/waitlist/media/promo_en.mp4",
    "type": "video",
    "lang": "en",
    "theme": "prologue",
@@ -56,7 +56,7 @@
    "note": "Prolog gry z lektorem i napisami"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/waitlist/media/promo_pl.mp4",
+   "url": "https://districtx-legal.pages.dev/waitlist/media/promo_pl.mp4",
    "type": "video",
    "lang": "pl",
    "theme": "prologue",
@@ -65,7 +65,7 @@
    "note": "Prolog gry z lektorem i napisami"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/alliance_en.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/alliance_en.mp4",
    "type": "video",
    "lang": "en",
    "theme": "alliance",
@@ -73,7 +73,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/alliance_pl.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/alliance_pl.mp4",
    "type": "video",
    "lang": "pl",
    "theme": "alliance",
@@ -81,7 +81,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/battle_en.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/battle_en.mp4",
    "type": "video",
    "lang": "en",
    "theme": "battle",
@@ -89,7 +89,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/battle_pl.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/battle_pl.mp4",
    "type": "video",
    "lang": "pl",
    "theme": "battle",
@@ -97,7 +97,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/boss_en.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/boss_en.mp4",
    "type": "video",
    "lang": "en",
    "theme": "boss",
@@ -105,7 +105,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/boss_pl.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/boss_pl.mp4",
    "type": "video",
    "lang": "pl",
    "theme": "boss",
@@ -113,7 +113,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/city_en.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/city_en.mp4",
    "type": "video",
    "lang": "en",
    "theme": "city",
@@ -121,7 +121,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/city_pl.mp4",
+   "url": "https://districtx-legal.pages.dev/marketing/city_pl.mp4",
    "type": "video",
    "lang": "pl",
    "theme": "city",
@@ -129,7 +129,7 @@
    "format": "9:16"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot1_en.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot1_en.jpg",
    "type": "image",
    "lang": "en",
    "theme": "city",
@@ -137,7 +137,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot1_pl.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot1_pl.jpg",
    "type": "image",
    "lang": "pl",
    "theme": "city",
@@ -145,7 +145,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot2_en.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot2_en.jpg",
    "type": "image",
    "lang": "en",
    "theme": "battle",
@@ -153,7 +153,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot2_pl.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot2_pl.jpg",
    "type": "image",
    "lang": "pl",
    "theme": "battle",
@@ -161,7 +161,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot3_en.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot3_en.jpg",
    "type": "image",
    "lang": "en",
    "theme": "boss",
@@ -169,7 +169,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot3_pl.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot3_pl.jpg",
    "type": "image",
    "lang": "pl",
    "theme": "boss",
@@ -177,7 +177,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot4_en.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot4_en.jpg",
    "type": "image",
    "lang": "en",
    "theme": "map",
@@ -185,7 +185,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot4_pl.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot4_pl.jpg",
    "type": "image",
    "lang": "pl",
    "theme": "map",
@@ -193,7 +193,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot5_en.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot5_en.jpg",
    "type": "image",
    "lang": "en",
    "theme": "alliance",
@@ -201,7 +201,7 @@
    "format": "4:5"
   },
   {
-   "url": "https://enkier.github.io/districtx-legal/marketing/shot5_pl.jpg",
+   "url": "https://districtx-legal.pages.dev/marketing/shot5_pl.jpg",
    "type": "image",
    "lang": "pl",
    "theme": "alliance",
