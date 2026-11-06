@@ -575,7 +575,14 @@
       </div>
       <p class="muted">„Wycisz 24 h” blokuje graczowi pisanie na czacie przez 24 godziny (np. za spam lub wulgaryzmy), „Odcisz” zdejmuje tę blokadę od razu. „Banuj” całkowicie wyłącza gracza z gry online. „Usuń” kasuje konto na zawsze (postęp, zapis gry, wiadomości) – tego nie da się cofnąć; konta administratorów są pomijane.</p>
       <div class="scroll"><table id="players"><thead><tr><th><input type="checkbox" id="playersAll" title="Zaznacz wszystkie"></th><th>Gracz</th><th>Siła</th><th>HQ</th><th>Ostatnio</th><th>Czas gry</th><th>Dni w grze</th><th>Status</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
+      <div id="giftBox" class="card2 hidden"></div>
       <div id="playerDetail" class="card2 hidden"></div>
+    </section>
+    <section id="giftHistSection">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🎁 Historia prezentów</h2><button class="ghost" style="flex:0 0 auto" id="ghReload">Odśwież</button></div>
+      <p class="hint">Każdy prezent z panelu: komu, co, ile i kiedy (pojedynczo, dla sojuszu/regionu i dla wszystkich; bez botów).</p>
+      <div class="row"><div><label for="ghFilter">Filtruj po graczu</label><input id="ghFilter" placeholder="nazwa gracza"></div></div>
+      <div class="scroll" style="max-height:480px"><table id="ghTable"><thead><tr><th>Kiedy</th><th>Gracz</th><th>Prezent</th><th>Ile</th><th>Komu</th><th>Notatka</th></tr></thead><tbody></tbody></table></div>
     </section>
     <section>
       <h2>Sojusze</h2>
@@ -777,7 +784,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases(); loadRevenue().catch(() => {});
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadServer().catch(() => {}); loadFounders().catch(() => {}); loadBadgeNames().catch(() => {}); loadProposals().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadServer().catch(() => {}); loadFounders().catch(() => {}); loadGiftHistory().catch(() => {}); loadBadgeNames().catch(() => {}); loadProposals().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -1366,13 +1373,8 @@ $("players").onclick = async (e) => {
   const id = b.dataset.id, act = b.dataset.act;
   if (act === "detail") { showPlayer(id); return; }
   if (act === "delete") { deleteAccounts([id], `konto „${b.dataset.name}”`); return; }
-  if (act === "gift") {
-    const text = prompt('Zasoby jako JSON, np. {"crystals": 500, "steel": 10000}', '{"crystals": 500}');
-    if (!text) return;
-    let res; try { res = JSON.parse(text); } catch (err) { return toast("Niepoprawny JSON", true); }
-    const note = prompt("Notatka (opcjonalnie)", "Prezent od zespołu DistrictX") || "";
-    await check(sb.rpc("admin_gift", { p_user: id, p_resources: res, p_note: note }));
-    toast("Prezent wysłany");
+  if (act === "gift") { openGift(id, b.closest("tr")?.querySelector("td:nth-child(2)")?.textContent?.trim() || ""); return; }
+  if (false) {
   } else if (act === "mute" || act === "unmute") {
     await check(sb.rpc("admin_moderate", { p_user: id, p_mute_hours: act === "mute" ? 24 : 0, p_ban: null }));
     toast("Zapisano"); searchPlayers();
@@ -1656,6 +1658,64 @@ $("giftAllSend").onclick = async () => {
 
 // ---------- Player detail ----------
 const ENTITLEMENTS = ["general_pass","major_pass","auto_battle","battle_speed_x4","battle_instant","auto_collect","auto_help","auto_help_offline","extra_march_1","extra_march_2","translator"];
+
+// ---- Prezent dla gracza (lista rozwijana) + historia ----
+const ENT_NAMES = { general_pass: "Przepustka Generała", major_pass: "Przepustka Majora", auto_battle: "Automatyczna walka", battle_speed_x4: "Walka ×4", battle_instant: "Natychmiastowa walka", auto_collect: "Automatyczne zbieranie", auto_help: "Automatyczna pomoc", auto_help_offline: "Pomoc sojuszu offline", extra_march_1: "Dodatkowy marsz 1", extra_march_2: "Dodatkowy marsz 2", translator: "Tłumacz czatu" };
+const RES_NAMES = Object.fromEntries(RES);
+const GIFT_OPTS = [
+  ...RES.map(([k, l]) => ({ v: "res:" + k, label: (k === "crystals" ? "💎 " : "📦 ") + l, unit: "ilość", def: k === "crystals" ? 500 : 10000 })),
+  ...ENTITLEMENTS.map(e => ({ v: "ent:" + e, label: "⭐ " + (ENT_NAMES[e] || e), unit: "dni (0 = bezterminowo)", def: 7 }))
+];
+function giftLabel(r) {
+  if (r.kind === "subscription") return [ENT_NAMES[r.detail.entitlement] || r.detail.entitlement, r.detail.days ? r.detail.days + " dni" : "bezterminowo"];
+  const parts = Object.entries(r.detail || {}).map(([k, v]) => [RES_NAMES[k] || k, Number(v).toLocaleString("pl-PL")]);
+  return [parts.map(p => p[0]).join(", "), parts.map(p => p[1]).join(", ")];
+}
+function openGift(id, name) {
+  const box = $("giftBox");
+  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">🎁 Prezent dla: ${esc(name)}</h3><button class="ghost" style="flex:0 0 auto" id="gbClose">Zamknij</button></div>
+    <div class="row">
+      <div><label for="gbWhat">Co</label><select id="gbWhat">${GIFT_OPTS.map(o => `<option value="${o.v}">${o.label}</option>`).join("")}</select></div>
+      <div><label for="gbAmount" id="gbUnit">ilość</label><input id="gbAmount" type="number" min="0"></div>
+      <div><label for="gbNote">Notatka (widzi gracz)</label><input id="gbNote" value="Prezent od zespołu DistrictX"></div>
+      <div style="flex:0 0 auto"><button id="gbSend">Wyślij prezent</button></div>
+    </div>
+    <h4 style="margin:10px 0 4px">Prezenty tego gracza</h4><div id="gbHist" class="muted">Wczytuję…</div>`;
+  const sync = () => { const o = GIFT_OPTS.find(x => x.v === $("gbWhat").value); $("gbUnit").textContent = o.unit; $("gbAmount").value = o.def; $("gbNote").disabled = o.v.startsWith("ent:"); };
+  $("gbWhat").onchange = sync; sync();
+  $("gbClose").onclick = () => box.classList.add("hidden");
+  const hist = async () => {
+    const rows = await check(sb.rpc("admin_gift_history", { p_user: id, p_limit: 50 })) || [];
+    $("gbHist").innerHTML = rows.length ? `<table><tbody>${rows.map(r => { const [w, n] = giftLabel(r); return `<tr><td>${when(r.created_at)}</td><td>${esc(w)}</td><td>${esc(n)}</td><td>${esc(r.note || "")}</td></tr>`; }).join("")}</tbody></table>` : "Brak prezentów.";
+  };
+  $("gbSend").onclick = async () => {
+    const [kind, key] = $("gbWhat").value.split(":"), amount = parseInt($("gbAmount").value || "0", 10);
+    if (kind === "res") {
+      if (!(amount > 0)) return toast("Podaj ilość", true);
+      await check(sb.rpc("admin_gift", { p_user: id, p_resources: { [key]: amount }, p_note: $("gbNote").value || "" }));
+    } else {
+      await check(sb.rpc("admin_grant_entitlement", { p_user: id, p_entitlement: key, p_days: Math.max(0, amount) }));
+    }
+    toast("Prezent wysłany"); hist(); loadGiftHistory();
+  };
+  box.classList.remove("hidden"); box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  hist();
+}
+let GH_ROWS = [];
+async function loadGiftHistory() {
+  GH_ROWS = await check(sb.rpc("admin_gift_history", { p_limit: 500 })) || [];
+  renderGiftHistory();
+}
+function renderGiftHistory() {
+  const f = ($("ghFilter").value || "").trim().toLowerCase();
+  const scope = { player: "gracz", group: "sojusz/region", all: "wszyscy" };
+  $("ghTable").querySelector("tbody").innerHTML = GH_ROWS.filter(r => !f || (r.user_name || "").toLowerCase().includes(f)).map(r => {
+    const [w, n] = giftLabel(r);
+    return `<tr><td>${when(r.created_at)}</td><td>${esc(r.user_name || "—")}</td><td>${esc(w)}</td><td>${esc(n)}</td><td>${scope[r.scope] || r.scope}</td><td>${esc(r.note || "")}</td></tr>`;
+  }).join("") || '<tr><td colspan="6" class="muted">Brak prezentów</td></tr>';
+}
+$("ghReload").onclick = () => loadGiftHistory();
+$("ghFilter").oninput = () => renderGiftHistory();
 async function showPlayer(id) {
   const d = await check(sb.rpc("admin_player", { p_user: id }));
   const p = d.profile || {};
@@ -1899,7 +1959,7 @@ start();
     { id:"home", ic:"📊", name:"Pulpit", sub:"Statystyki, zakupy, zgłoszenia i ogłoszenia", color:"#FF6A1F",
       match:["Statystyki","Do decyzji","Przychody i zakupy","Opinie i błędy","Ogłoszenia w grze"] },
     { id:"players", ic:"👥", name:"Gracze", sub:"Gracze, sojusze, beta i prezenty", color:"#3DDC84",
-      match:["=Gracze","Herb założyciela","Sojusze","Konta z bety","Chętni do bety","Prezent dla"] },
+      match:["=Gracze","Historia prezentów","Herb założyciela","Sojusze","Konta z bety","Chętni do bety","Prezent dla"] },
     { id:"events", ic:"🎉", name:"Wydarzenia", sub:"Boss świata, kalendarz, promocje i push", color:"#FFC24B",
       match:["Agent GM","Komunikat wydarzenia","Wydarzenia na żywo","Kalendarz","Promocja","Kampanie push"] },
     { id:"game", ic:"⚙️", name:"Gra", sub:"Balans, czasy, gracze AI, VIP i konfiguracja", color:"#b28bff",
