@@ -235,8 +235,13 @@
     </section>
 
     <section id="founderSection">
-      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🏅 Herb założyciela i ramka</h2><button class="ghost" style="flex:0 0 auto" id="fdReload">Odśwież</button></div>
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🏅 Herb założyciela i ramka (Gwardzista)</h2><button class="ghost" style="flex:0 0 auto" id="fdReload">Odśwież</button></div>
       <p class="hint">Herb z literą X i ramka założyciela są przyznawane <b>wyłącznie ręcznie</b> – nowe konta nie dostają ich automatycznie. Poniżej testerzy z archiwum (sprzed startu) i konta, które założyli po reinstalacji (to samo urządzenie albo ta sama nazwa). Herb możesz też nadać dowolnemu graczowi w jego karcie.</p>
+      <h3 style="margin:12px 0 4px">Nazwa odznaki</h3>
+      <p class="hint">Nazwa odznaki (np. „Gwardzista”) i ramki (dopełniacz: „ramka Gwardzisty”) w każdym języku. Gra pobiera ją z serwera w ciągu kilku minut – bez aktualizacji aplikacji (od wersji 1.0.2). Puste pole = tekst wbudowany w grę.</p>
+      <div class="scroll"><table id="fdNames"><thead><tr><th>Język</th><th>Odznaka</th><th>Ramka</th></tr></thead><tbody></tbody></table></div>
+      <div class="row" style="margin-top:8px"><div style="flex:0 0 auto"><button id="fdNamesSave">Zapisz nazwę odznaki</button></div></div>
+      <h3 style="margin:16px 0 4px">Testerzy sprzed startu</h3>
       <div class="scroll" style="max-height:420px"><table id="fdTable"><thead><tr><th>Tester (archiwum)</th><th>HQ</th><th>Nowe konto</th><th>Herb</th></tr></thead><tbody></tbody></table></div>
       <h3 style="margin:16px 0 4px">🌍 Reset świata</h3>
       <p class="hint">Podbija epokę świata: każdy telefon z zapisem sprzed tej chwili sam go wyczyści przy najbliższym uruchomieniu (od wersji 1.0.2) i zacznie od zera. Konta admina są pominięte. Wpisz RESET, aby potwierdzić.</p>
@@ -772,7 +777,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases(); loadRevenue().catch(() => {});
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadServer().catch(() => {}); loadFounders().catch(() => {}); loadProposals().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadServer().catch(() => {}); loadFounders().catch(() => {}); loadBadgeNames().catch(() => {}); loadProposals().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -1807,7 +1812,27 @@ async function loadFounders() {
   const { data: w } = await sb.from("live_config").select("value").eq("key", "world").maybeSingle();
   $("wrEpoch").value = w && w.value ? `${w.value.epoch} (od ${when(w.value.reset_at)})` : "—";
 }
-$("fdReload").onclick = () => loadFounders();
+$("fdReload").onclick = () => { loadFounders(); loadBadgeNames(); };
+const FD_LANGS = [["pl","Polski"],["en","English"],["ko","한국어"],["zh-Hans","简体中文"],["zh-Hant","繁體中文"],["ar","العربية"],["he","עברית"]];
+async function loadBadgeNames() {
+  const { data } = await sb.from("live_config").select("value").eq("key", "text_overrides").maybeSingle();
+  const v = (data && data.value) || {};
+  $("fdNames").querySelector("tbody").innerHTML = FD_LANGS.map(([c, n]) => `<tr><td>${n}</td>
+    <td><input data-l="${c}" data-k="social.founder" value="${esc((v[c] || {})["social.founder"] || "")}"></td>
+    <td><input data-l="${c}" data-k="cosmetic.frameFounder" value="${esc((v[c] || {})["cosmetic.frameFounder"] || "")}"></td></tr>`).join("");
+}
+$("fdNamesSave").onclick = async () => {
+  const { data } = await sb.from("live_config").select("value").eq("key", "text_overrides").maybeSingle();
+  const v = (data && data.value) || {};
+  $("fdNames").querySelectorAll("input[data-l]").forEach(i => {
+    const l = i.dataset.l, k = i.dataset.k, t = i.value.trim();
+    v[l] = v[l] || {};
+    if (t) v[l][k] = t; else delete v[l][k];
+  });
+  await check(sb.from("live_config").upsert({ key: "text_overrides", value: v }));
+  toast("Nazwa odznaki zapisana"); loadBadgeNames();
+};
+
 $("wrRun").onclick = async () => {
   if ($("wrConfirm").value !== "RESET") { toast("Wpisz RESET, aby potwierdzić"); return; }
   if (!confirm("Na pewno zresetować świat? Wszystkie telefony z wcześniejszym zapisem zaczną od zera.")) return;
