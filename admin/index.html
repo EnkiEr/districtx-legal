@@ -227,6 +227,13 @@
       <div class="scroll" style="max-height:420px"><table id="propHistory"><thead><tr><th>Data</th><th>Propozycja</th><th>Zmiana</th><th>Status</th><th>Akcje</th></tr></thead><tbody></tbody></table></div>
     </section>
 
+    <section id="srvSection">
+      <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🖥️ Serwer i limity planu</h2><button class="ghost" style="flex:0 0 auto" id="srvReload">Odśwież</button></div>
+      <p class="hint">Zużycie serwera gry (Supabase) względem limitów obecnego planu. Od 70% pasek robi się czerwony – to sygnał, żeby przejść na wyższy plan. Transfer jest szacunkiem z liczby graczy dziennie (≈80 MB/gracz/mies.) – Supabase nie udostępnia go do bazy; dokładny widać w panelu Supabase → Usage.</p>
+      <div id="srvAlert"></div>
+      <div id="srvBars" style="display:grid;gap:12px;margin-top:8px"></div>
+    </section>
+
     <section id="gmSection">
       <div class="row" style="justify-content:space-between; align-items:center"><h2 style="margin:0">🎮 Agent GM (mistrz gry)</h2><button class="ghost" style="flex:0 0 auto" id="gmReload">Odśwież</button></div>
       <p class="hint">Gdy agent jest włączony, co 15 minut sprawdza serwer i sam dba, żeby gra żyła: wypuszcza bossa świata w rozsądnych odstępach, ogłasza fale mobów (więcej łupu z mobów) i wieczorną „szczęśliwą godzinę”. Poziom bossa i jego punkty życia dobiera do aktywnych graczy z ostatnich 3 dni.</p>
@@ -756,7 +763,7 @@ async function startInner() {
   if (!isAdmin) { $("noadmin").classList.remove("hidden"); $("myId").textContent = session.user.id; return; }
   $("app").classList.remove("hidden");
   loadStats(); loadBanner().catch(() => {}); loadEvents().catch(() => {}); loadConfig(); searchPlayers(); searchAlliances().catch(() => {}); loadChat().catch(() => {}); loadFeedback(); loadAnnouncements(); loadPurchases(); loadRevenue().catch(() => {});
-  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadProposals().catch(() => {});
+  loadCalendar().catch(() => {}); loadPromo().catch(() => {}); loadDisputes().catch(() => {}); loadTuning().catch(() => {}); loadVip().catch(() => {}); loadBlockedWords().catch(() => {}); loadBeta().catch(() => {}); loadBackups().catch(() => {}); loadCloudBackups().catch(() => {}); loadBots().catch(() => {}); loadGM().catch(() => {}); loadServer().catch(() => {}); loadProposals().catch(() => {});
   loadWaitlist().then(() => { if (location.hash === "#beta") $("beta").scrollIntoView(); }).catch(() => {});
   clearInterval(start.timer); start.timer = setInterval(() => loadCalendar().catch(() => {}), 60000);
 }
@@ -1753,6 +1760,26 @@ $("sysSend").onclick = async () => {
   await check(sb.rpc("admin_post_system_message", { p_body: body })); $("sysMsg").value = ""; toast("Wysłano"); if ($("chatChannel").value === "world") loadChat();
 };
 
+
+// ---- Serwer i limity ----
+async function loadServer() {
+  const r = await check(sb.rpc("admin_server_usage")); if (!r) return;
+  const c = r.config || {}, alert = c.alert_pct ?? 70;
+  const rows = [
+    ["Baza danych", r.db_mb, c.db_mb, "MB"],
+    ["Transfer (szacunek / mies.)", r.egress_gb_est, c.egress_gb, "GB"],
+    ["Aktywni w miesiącu (MAU)", r.mau, c.mau, ""],
+  ];
+  let over = [];
+  $("srvBars").innerHTML = rows.map(([l, v, max, u]) => {
+    const pct = max ? Math.min(100, Math.round(100 * (v || 0) / max)) : 0; if (pct >= alert) over.push(l);
+    const col = pct >= alert ? "#FF5A5F" : pct >= alert * 0.7 ? "#FFC24B" : "#3DDC84";
+    return `<div><div class="row" style="justify-content:space-between"><b>${l}</b><span class="muted">${v ?? 0}${u ? " " + u : ""} / ${max}${u ? " " + u : ""} · ${pct}%</span></div>
+      <div style="height:10px;border-radius:6px;background:#262932;overflow:hidden;margin-top:6px"><div style="height:100%;width:${pct}%;background:${col}"></div></div></div>`;
+  }).join("") + `<div class="muted">Plan: <b>${esc(c.plan || "free")}</b> · gracze dziś: <b>${r.dau}</b> · średnio z 7 dni: <b>${r.dau7}</b></div>`;
+  $("srvAlert").innerHTML = over.length ? `<div class="err" style="padding:10px 12px;border-radius:10px;background:rgba(255,90,95,.12)">⚠️ Powyżej ${alert}% limitu: ${over.map(esc).join(", ")}. Czas przejść na wyższy plan Supabase (Pro 25 USD/mies.).</div>` : "";
+}
+$("srvReload").onclick = () => loadServer();
 
 // ---- Agent GM ----
 const GM_ACT = { boss: "👹 Boss świata", wave: "🧟 Fala mobów", happy_hour: "✨ Szczęśliwa godzina" };
